@@ -1,33 +1,117 @@
-قم بتحليل الفريمين معاً ميكانيكياً وصياغة الرد باللغة العربية تماماً متضمناً جزأين:
+import os
+import telebot
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
+import google.generativeai as genai
+from flask import Flask
+from threading import Thread
+import io
+from PIL import Image
+
+TOKEN = os.environ.get('TELEGRAM_TOKEN')
+GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
+
+bot = telebot.Bot(TOKEN)
+genai.configure(api_key=GOOGLE_API_KEY)
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running 24/7"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+user_data = {}
+
+def get_main_keyboard():
+    markup = ReplyKeyboardMarkup(is_persistent=True, resize_keyboard=True)
+    markup.append("▶️ Start Analysis")
+    return markup
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "Welcome to Gold Analysis Bot. Please select your timeframe:", reply_markup=get_main_keyboard())
+    show_timeframe_options(message.chat.id)
+
+@bot.message_handler(func=lambda message: message.text == "▶️ Start Analysis")
+def handle_start_button(message):
+    show_timeframe_options(message.chat.id)
+
+def show_timeframe_options(chat_id):
+    markup = InlineKeyboardMarkup()
+    markup.row(InlineKeyboardButton("⏱️ Timeframe (H4 + M15)", callback_data="tf_h4_m15"))
+    markup.row(InlineKeyboardButton("⏱️ Timeframe (H1 + M5)", callback_data="tf_h1_m5"))
+    bot.send_message(chat_id, "Choose the timeframe for your trade:", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("tf_"))
+def handle_timeframe_selection(call):
+    chat_id = call.message.chat.id
+    selection = call.data
+    
+    if selection == "tf_h4_m15":
+        user_data[chat_id] = {"mode": "H4_M15", "images": [], "expected": "Higher"}
+        bot.send_message(chat_id, "🎯 Sent the Higher Timeframe chart (H4):")
+    elif selection == "tf_h1_m5":
+        user_data[chat_id] = {"mode": "H1_M5", "images": [], "expected": "Higher"}
+        bot.send_message(chat_id, "🎯 Sent the Higher Timeframe chart (H1):")
+
+@bot.message_handler(content_types=['photo'])
+def handle_photos(message):
+    chat_id = message.chat.id
+    if chat_id not in user_data or "mode" not in user_data[chat_id]:
+        bot.reply_to(message, "Please click Start Analysis first.", reply_markup=get_main_keyboard())
+        return
+
+    file_info = bot.get_file(message.photo[-1].file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    image = Image.open(io.BytesIO(downloaded_file))
+    
+    state = user_data[chat_id]
+    
+    if state["expected"] == "Higher":
+        state["images"].append(image)
+        state["expected"] = "Lower"
+        lower_tf = "M15" if state["mode"] == "H4_M15" else "M5"
+        bot.send_message(chat_id, f"✅ Higher timeframe received. Now send the Lower timeframe chart ({lower_tf}):")
+    
+    elif state["expected"] == "Lower":
+        state["images"].append(image)
+        state["expected"] = "Done"
+        bot.send_message(chat_id, "⏳ Processing charts and running technical analysis via Gemini AI...")
+        execute_analysis(chat_id)
+
+def execute_analysis(chat_id):
+    try:
+        state = user_data[chat_id]
+        higher_img = state["images"][0]
+        lower_img = state["images"][1]
         
-        1. التوصية المختصرة (تظهر فوراً) وتتضمن إشارات بيع أو شراء واضحة جداً مع استخدام هذه الإيموجيات حصراً بناء على معطيات الشارت: (📈🔻 للبيع، 🟢🟢🟢📉 للشراء، ❌❌❌ للستوب لوز، 🎯 للأهداف). مع الالتزام بنسبة مخاطرة إلى عائد 1:3 ميكانيكياً.
-        2. التحليل العميق والشامل بصيغة قالب "تحليل الذهب - EXODUS AI" لعام 2026 بتوقيت أبوظبي، ويتضمن الخلاصة التنفيذية (الاتجاه، الزخم، السيولة، التوافق)، المناطق المهمة (الدعوم والمقاومات الأقرب والتالية)، السيناريو الإيجابي والضاغط، وسبب الترجيح الفني المفصل بناء على مستويات الفير فاليو جاب (FVG)، والسيولة ومناطق كسر البنية الفنية.
-        """
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        prompt = "Analyze these two gold (XAUUSD) charts. Provide a detailed technical analysis in Arabic including entries, stop loss, take profit (Risk-Reward 1:3), support/resistance levels, and SMC/ICT principles like FVG, liquidity sweeps, and market structure shifts."
         
         response = model.generate_content([prompt, higher_img, lower_img])
-        analysis_text = response.text
-        
-        # إرسال التقرير والتحليل الفني للمستخدم
-        bot.send_message(chat_id, analysis_text)
-        
-        # إظهار سؤال المتابعة والأزرار التفاعلية النهائية للـ Loop التلقائي
+        bot.send_message(chat_id, response.text)
         show_follow_up(chat_id)
         
     except Exception as e:
-        # نظام الفولباك التلقائي للموديل الآخر في حال الضغط الميكانيكي على الحصة اليومية
         try:
             model_fallback = genai.GenerativeModel('gemini-1.5-flash')
             response = model_fallback.generate_content([prompt, higher_img, lower_img])
             bot.send_message(chat_id, response.text)
-            show_follow_up(chat_id)
-        except:
-            bot.send_message(chat_id, "عذراً، تعذّر معالجة الصور حالياً بسبب ضغط الطلبات. أعد الإرسال بعد قليل. 🔄")
+            show_follow_up(chat_id)except Exception as ex:
+            bot.send_message(chat_id, "Error processing images. Please try again.")
 
 def show_follow_up(chat_id):
     markup = InlineKeyboardMarkup()
-    markup.row(InlineKeyboardButton("🔄 نفس الإطار الزمني", callback_data="loop_same"))
-    markup.row(InlineKeyboardButton("⏱️ إطار زمني آخر", callback_data="loop_other"))
-    bot.send_message(chat_id, "هل لديك صفقة أخرى جاهزة للقنص؟", reply_markup=markup)
+    markup.row(InlineKeyboardButton("🔄 Same Timeframe", callback_data="loop_same"))
+    markup.row(InlineKeyboardButton("⏱️ Other Timeframe", callback_data="loop_other"))
+    bot.send_message(chat_id, "Do you have another trade setup?", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("loop_"))
 def handle_loop(call):
@@ -36,11 +120,10 @@ def handle_loop(call):
         if chat_id in user_data:
             user_data[chat_id]["images"] = []
             user_data[chat_id]["expected"] = "Higher"
-            bot.send_message(chat_id, "تم تصفير الذاكرة للإطار الحالي بنجاح. أرسل صورة الفريم الكبير فوراً لقنص صفقة جديدة:")
+            bot.send_message(chat_id, "Cleared. Please send the Higher timeframe chart:")
     elif call.data == "loop_other":
         show_timeframe_options(chat_id)
 
 if name == "__main__":
-    # استدعاء دالة الـ Keep-Alive لتجهيز السيرفر للعمل 24/7 دون توقف
     keep_alive()
     bot.infinity_polling()
