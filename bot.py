@@ -92,20 +92,14 @@ def execute_analysis(chat_id):
         lower_img = state["images"][1]
         
         model = genai.GenerativeModel('gemini-2.5-flash')
-        
         prompt = "Analyze these two gold (XAUUSD) charts. Provide a detailed technical analysis in Arabic including entries, stop loss, take profit (Risk-Reward 1:3), support/resistance levels, and SMC/ICT principles like FVG, liquidity sweeps, and market structure shifts."
         
         response = model.generate_content([prompt, higher_img, lower_img])
         bot.send_message(chat_id, response.text)
         show_follow_up(chat_id)
-        
     except Exception as e:
-        try:
-            model_fallback = genai.GenerativeModel('gemini-1.5-flash')
-            response = model_fallback.generate_content([prompt, higher_img, lower_img])
-            bot.send_message(chat_id, response.text)
-            show_follow_up(chat_id)except Exception as ex:
-            bot.send_message(chat_id, "Error processing images. Please try again.")
+        bot.send_message(chat_id, f"Error: {str(e)}")
+        show_follow_up(chat_id)
 
 def show_follow_up(chat_id):
     markup = InlineKeyboardMarkup()
