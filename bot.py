@@ -10,7 +10,6 @@ from PIL import Image
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
-# التعديل الصحيح هنا لتشغيل البوت ميكانيكياً
 bot = telebot.TeleBot(TOKEN)
 genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -105,7 +104,8 @@ def execute_analysis(chat_id):
 def show_follow_up(chat_id):
     markup = InlineKeyboardMarkup()
     markup.row(InlineKeyboardButton("🔄 Same Timeframe", callback_data="loop_same"))
-    markup.row(InlineKeyboardButton("⏱️ Other Timeframe", callback_data="loop_other"))
+    markup.
+    row(InlineKeyboardButton("⏱️ Other Timeframe", callback_data="loop_other"))
     bot.send_message(chat_id, "Do you have another trade setup?", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("loop_"))
