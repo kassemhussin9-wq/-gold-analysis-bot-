@@ -10,7 +10,8 @@ from PIL import Image
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
-bot = telebot.Bot(TOKEN)
+# التعديل الصحيح هنا لتشغيل البوت ميكانيكياً
+bot = telebot.TeleBot(TOKEN)
 genai.configure(api_key=GOOGLE_API_KEY)
 
 app = Flask('')
