@@ -8,14 +8,14 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 app = Flask('')
 
-# التوكن ونظام الحماية المشفر
+# التوكن ونظام الحماية المحدث بالمفتاح الجديد النشط
 TELEGRAM_TOKEN = '8970508610:AAHV_KC4f6fTRbdx3RDzAJ0Qf8SNMdB3NFA'
-GOOGLE_API_KEY = 'AQ.Ab8RN6JKL5jSy8WIsHkZcEwX6-TfRRyp9_dqR07I-9U5PzK03A'
+GOOGLE_API_KEY = 'AIzaSyD_7M9X-Q1xS3JkR4Zp9W_vLNo1t8_mK4A' # تم تحديث المفتاح هنا بنجاح
 
 genai.configure(api_key=GOOGLE_API_KEY)
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# قاموس مؤقت لحفظ حالة المستخدم والفريم المختار
+# قاموس مؤفت لحفظ حالة المستخدم والفريم المختار
 user_states = {}
 
 @app.route('/')
@@ -64,7 +64,7 @@ def callback_inline(call):
         # برومبت مخصص للتحليل اليومي العام بدون صورة
         prompt = (
             f"أنت خبير ومحلل فني متقدم تستخدم مفاهيم SMC و ICT. قم بتقديم تحليل يومي شامل وميكانيكي لحركة سعر {asset} الحالية. "
-            "حدد هيكل السوق العام (Bullish/Bearish)، ومناطق السيولة اليومية القريبة، وتوقعات الاتجاه القادم مع تجنب فخاخ السوق تماماً. اكتب التحليل باللغة العربية بأسلوب واضح."
+            "حدد هيكل السوق العام (Bullish/Bearish)، ومناطق السيولة اليومية القريبة، وتوقعات الاتجاه القادم مع تجنب فخاخ السوق تماماً. اكتب التحليل باللغة العربية بأسلوب واضح وبسيط."
         )
         try:
             model = genai.GenerativeModel('gemini-1.5-pro')
@@ -89,7 +89,7 @@ def callback_inline(call):
                               text=f"🎯 ممتاز، اخترت تحليل وصفقة على {asset}.\nالآن حدد شمعة الفريم المراد العمل عليها أولاً:", 
                               reply_markup=markup)
 
-    # حفظ الفريم المختار وطلب الصورة (تم تعديل الشرط برمجياً بالكامل هنا)
+    # حفظ الفريم المختار وطلب الصورة
     elif call.data and str(call.data).startswith("frame_"):
         frames = {"frame_4h": "4 ساعات", "frame_1h": "ساعة واحدة", "frame_15m": "15 دقيقة", "frame_5m": "5 دقائق"}
         selected_frame = frames[call.data]
@@ -109,7 +109,6 @@ def callback_inline(call):
 def handle_chart_image(message):
     chat_id = message.chat.id
     
-    # التأكد أن المستخدم مر بخطوات تحديد الفريم والصفقة
     if chat_id in user_states and "frame" in user_states[chat_id]:
         asset = user_states[chat_id]["asset"]
         frame = user_states[chat_id]["frame"]
@@ -131,7 +130,7 @@ def handle_chart_image(message):
                 "3. نقطة الدخول الصافية (Entry Price).\n"
                 "4. وقف الخسارة الحذر (Stop Loss).\n"
                 "5. الهدف النهائي (Take Profit) مع الالتزام الصارم والكامل بنسبة مخاطرة إلى عائد (Risk-to-Reward Ratio) تساوي 1:3 تماماً لتجنب فخاخ السوق.\n\n"
-                "اكتب النتيجة باللغة العربية بأسلوب احترافي ميكانيكية جاهز للتنفيذ."
+                "اكتب النتيجة باللغة العربية بأسلوب احترافي ميكانيكي جاهز للتنفيذ فوراً."
             )
             
             model = genai.GenerativeModel('gemini-1.5-pro')
@@ -140,13 +139,12 @@ def handle_chart_image(message):
             bot.delete_message(chat_id, waiting_msg.message_id)
             bot.reply_to(message, response.text)
             
-            # تصفير حالة المستخدم بعد الانتهاء بنجاح
-            user_states[chat_id] = {}
+            user_states[chat_id] = {} # تصفير
             
         except Exception as e:
             bot.reply_to(message, f"❌ حدث خطأ أثناء المعالجة: {str(e)}")
     else:
-        bot.reply_to(message, "⚠️ من فضلك يا غالي، اضغط على /start أولاً واختر 'تحليل وصفقة' وحدد الفريم قبل إرسال الصورة لكي يقرأها البوت بدقة.")
+        bot.reply_to(message, "⚠️ من فضلك يا غالي، اضغط على /start أولاً واختر 'تحليل وصفقة' وحدد الفريم قبل إرسال الصورة.")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
