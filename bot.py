@@ -4,15 +4,19 @@ import google.generativeai as genai
 from PIL import Image
 import io
 from flask import Flask, request
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 app = Flask('')
 
-# التوكن النظيف والمحصن 100% ورابط جيميناي
+# التوكن ونظام الحماية المشفر
 TELEGRAM_TOKEN = '8970508610:AAHV_KC4f6fTRbdx3RDzAJ0Qf8SNMdB3NFA'
 GOOGLE_API_KEY = 'AQ.Ab8RN6JKL5jSy8WIsHkZcEwX6-TfRRyp9_dqR07I-9U5PzK03A'
 
 genai.configure(api_key=GOOGLE_API_KEY)
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
+
+# قاموس مؤقت لحفظ حالة المستخدم والفريم المختار
+user_states = {}
 
 @app.route('/')
 def home():
@@ -29,41 +33,120 @@ def getMessage():
         print(f"Error processing update: {e}")
         return "Error", 500
 
+# 1. القائمة الرئيسية عند الضغط على /start
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    welcome_text = (
-        "مرحباً بك يا غالي في بوت تحليل الشارتات الذكي! 📊✨\n\n"
-        "أرسل لي أي صورة لشارت (الذهب، البيتكوين، إلخ) وسأقوم بتحليلها لك ميكانيكياً بناءً على استراتيجية SMC/ICT مع نسبة مخاطرة 1:3 حذرة لتجنب فخاخ السوق."
+    user_states[message.chat.id] = {} # تصفير الحالة
+    
+    welcome_text = "مرحباً بك يا غالي في منظومة تحليل الشارتات الذكية! 📊✨\nاختر الخدمة المطلوبة ميكانيكياً من الأزرار أدناه:"
+    
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(
+        InlineKeyboardButton("1️⃣ تحليل شارت الذهب اليومي (تلقائي)", callback_data="analyze_gold_daily"),
+        InlineKeyboardButton("2️⃣ تحليل وصفقة على الذهب (تحتاج صورة)", callback_data="trade_gold"),
+        InlineKeyboardButton("3️⃣ تحليل شارت البيتكوين اليومي (تلقائي)", callback_data="analyze_btc_daily"),
+        InlineKeyboardButton("4️⃣ تحليل وصفقة بتكوين (تحتاج صورة)", callback_data="trade_btc")
     )
-    bot.reply_to(message, welcome_text)
+    
+    bot.send_message(message.chat.id, welcome_text, reply_markup=markup)
 
+# 2. معالجة ضغطات الأزرار
+@bot.callback_query_handler(func=lambda call: True)
+def callback_inline(call):
+    chat_id = call.message.chat.id
+    
+    # خيارات التحليل اليومي التلقائي (بدون صورة)
+    if call.data in ["analyze_gold_daily", "analyze_btc_daily"]:
+        asset = "الذهب (XAU/USD)" if call.data == "analyze_gold_daily" else "البيتكوين (BTC/USD)"
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
+                              text=f"🔄 جاري سحب بيانات شارت {asset} اليومي وتحليله ميكانيكياً... انتظر ثواني يا غالي.")
+        
+        # برومبت مخصص للتحليل اليومي العام بدون صورة
+        prompt = (
+            f"أنت خبير ومحلل فني متقدم تستخدم مفاهيم SMC و ICT. قم بتقديم تحليل يومي شامل وميكانيكي لحركة سعر {asset} الحالية. "
+            "حدد هيكل السوق العام (Bullish/Bearish)، ومناطق السيولة اليومية القريبة، وتوقعات الاتجاه القادم مع تجنب فخاخ السوق تماماً. اكتب التحليل باللغة العربية بأسلوب واضح."
+        )
+        try:
+            model = genai.GenerativeModel('gemini-1.5-pro')
+            response = model.generate_content(prompt)
+            bot.send_message(chat_id, response.text)
+        except Exception as e:
+            bot.send_message(chat_id, f"❌ حدث خطأ أثناء جلب التحليل التلقائي: {str(e)}")
+
+    # خيارات التحليل والصفقة (تطلب تحديد الفريم أولاً)
+    elif call.data in ["trade_gold", "trade_btc"]:
+        asset = "الذهب" if call.data == "trade_gold" else "البيتكوين"
+        user_states[chat_id] = {"action": "trade", "asset": asset}
+        
+        markup = InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            InlineKeyboardButton("⏱️ 4 ساعات (4H)", callback_data="frame_4h"),
+            InlineKeyboardButton("⏱️ ساعة واحدة (1H)", callback_data="frame_1h"),
+            InlineKeyboardButton("⏱️ 15 دقيقة (15M)", callback_data="frame_15m"),
+            InlineKeyboardButton("⏱️ 5 دقائق (5M)", callback_data="frame_5m")
+        )
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
+                              text=f"🎯 ممتاز، اخترت تحليل وصفقة على {asset}.\nالآن حدد شمعة الفريم المراد العمل عليها أولاً:", 
+                              reply_markup=markup)
+
+    # حفظ الفريم المختار وطلب الصورة
+    elif call.data startswith("frame_"):
+        frames = {"frame_4h": "4 ساعات", "frame_1h": "ساعة واحدة", "frame_15m": "15 دقيقة", "frame_5m": "5 دقائق"}
+        selected_frame = frames[call.data]
+        
+        if chat_id in user_states and "asset" in user_states[chat_id]:
+            user_states[chat_id]["frame"] = selected_frame
+            asset = user_states[chat_id]["asset"]
+            
+            bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
+                                  text=f"📥 تم تحديد فريم ({selected_frame}) لزوج {asset}.\n\n"
+                                       "أرسل لي الآن صورة الشارت النظيفة من TradingView ليتم استخراج صفقة ذكية وقوية فوراً!")
+        else:
+            bot.send_message(chat_id, "⚠️ عذراً، يرجى إعادة بدء البوت عبر إرسال /start")
+
+# 3. استقبال الصورة وتحليلها بناءً على الفريم والصفقة
 @bot.message_handler(content_types=['photo'])
 def handle_chart_image(message):
-    try:
-        waiting_msg = bot.reply_to(message, "جاري استقبال الشارت وقراءته ميكانيكياً... انتظر ثواني يا غالي 🔄")
+    chat_id = message.chat.id
+    
+    # التأكد أن المستخدم مر بخطوات تحديد الفريم والصفقة
+    if chat_id in user_states and "frame" in user_states[chat_id]:
+        asset = user_states[chat_id]["asset"]
+        frame = user_states[chat_id]["frame"]
         
-        file_info = bot.get_file(message.photo[-1].file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
-        image = Image.open(io.BytesIO(downloaded_file))
-        
-        prompt = (
-            "أنت خبير محترف في التداول ومحلل فني متقدم تستخدم مفاهيم سمارت موني (SMC) ومنهجية ICT. "
-            "حلل هذه الصورة المرفقة للشارت بدقة ميكانيكية حذرة جداً وتجنب الفخاخ تماماً (Fake Breakouts / Market Traps).\n\n"
-            "مطلوب منك في التحليل:\n"
-            "1. تحديد هيكل السوق الحالي (Market Structure) والاتجاه العام.\n"
-            "2. استخراج الفجوات السعرية (Fair Value Gaps - FVG) ونقاط السيولة (Liquidity Sweeps) ومستويات الـ Order Blocks.\n"
-            "3. تحديد منطقة الدخول الصافية (Entry Zone) بناءً على الكسر الحقيقي ومؤشر الزيجزاج إن وجد.\n"
-            "4. حساب الهدف ووقف الخسارة بدقة مع الالتزام الصارم بنسبة مخاطرة إلى عائد (Risk-to-Reward Ratio) تساوي 1:3 تماماً.\n\n"
-            "اكتب التحليل باللغة العربية بأسلوب واضح ومباشر وجاهز للتنفيذ."
-        )
-        
-        model = genai.GenerativeModel('gemini-1.5-pro')
-        response = model.generate_content([prompt, image])
-        
-        bot.delete_message(message.chat.id, waiting_msg.message_id)
-        bot.reply_to(message, response.text)
-    except Exception as e:
-        bot.reply_to(message, f"❌ حدث خطأ أثناء المعالجة: {str(e)}")
+        try:
+            waiting_msg = bot.reply_to(message, f"جاري قراءة شارت {asset} على فريم {frame} ميكانيكياً واستخراج الصفقة الذكية... 🔄")
+            
+            file_info = bot.get_file(message.photo[-1].file_id)
+            downloaded_file = bot.download_file(file_info.file_path)
+            image = Image.open(io.BytesIO(downloaded_file))
+            
+            prompt = (
+                f"أنت خبير محترف ومحلل متقدم تستخدم مفاهيم سمارت موني (SMC) ومنهجية ICT.\n"
+                f"أمامك صورة شارت لزوج {asset}. تم تحديد فريم التداول ليكون عيار شمعة ({frame}) تماماً.\n\n"
+                "حلل الصورة بدقة ميكانيكية حذرة جداً وتجنب الفخاخ تماماً (Fake Breakouts / Market Traps).\n"
+                "بناءً على التحليل، استخرج صفقة ذكية وقوية تتضمن النقاط التالية بالترتيب وبشكل واضح:\n"
+                "1. هيكل السوق الحالي على الفريم المحدد والاتجاه العام.\n"
+                "2. مستويات الـ Order Blocks المستهدفة والسيولة (Liquidity Sweeps) والفجوات السعرية (FVG).\n"
+                "3. نقطة الدخول الصافية (Entry Price).\n"
+                "4. وقف الخسارة الحذر (Stop Loss).\n"
+                "5. الهدف النهائي (Take Profit) مع الالتزام الصارم والكامل بنسبة مخاطرة إلى عائد (Risk-to-Reward Ratio) تساوي 1:3 تماماً لتجنب فخاخ السوق.\n\n"
+                "اكتب النتيجة باللغة العربية بأسلوب احترافي ميكانيكي جاهز للتنفيذ."
+            )
+            
+            model = genai.GenerativeModel('gemini-1.5-pro')
+            response = model.generate_content([prompt, image])
+            
+            bot.delete_message(chat_id, waiting_msg.message_id)
+            bot.reply_to(message, response.text)
+            
+            # تصفير حالة المستخدم بعد الانتهاء بنجاح
+            user_states[chat_id] = {}
+            
+        except Exception as e:
+            bot.reply_to(message, f"❌ حدث خطأ أثناء المعالجة: {str(e)}")
+    else:
+        bot.reply_to(message, "⚠️ من فضلك يا غالي، اضغط على /start أولاً واختر 'تحليل وصفقة' وحدد الفريم قبل إرسال الصورة لكي يقرأها البوت بدقة.")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
