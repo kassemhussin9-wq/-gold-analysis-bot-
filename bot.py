@@ -8,7 +8,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 app = Flask('')
 
-# سحب التوكن والمفتاح بأمان من إعدادات السيرفر
+# سحب التوكن والمفتاح بأمان ميكانيكي من إعدادات السيرفر
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN', '8970508610:AAHV_KC4f6fTRbdx3RDzAJ0Qf8SNMdB3NFA')
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
