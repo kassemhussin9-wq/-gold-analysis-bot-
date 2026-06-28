@@ -8,14 +8,14 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 app = Flask('')
 
-# التوكن ونظام الحماية المحدث بالمفتاح الجديد النشط
-TELEGRAM_TOKEN = '8970508610:AAHV_KC4f6fTRbdx3RDzAJ0Qf8SNMdB3NFA'
-GOOGLE_API_KEY = 'AIzaSyD_7M9X-Q1xS3JkR4Zp9W_vLNo1t8_mK4A' # تم تحديث المفتاح هنا بنجاح
+# سحب التوكن والمفتاح بأمان من إعدادات السيرفر
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN', '8970508610:AAHV_KC4f6fTRbdx3RDzAJ0Qf8SNMdB3NFA')
+GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
-genai.configure(api_key=GOOGLE_API_KEY)
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
-
-# قاموس مؤفت لحفظ حالة المستخدم والفريم المختار
 user_states = {}
 
 @app.route('/')
@@ -33,13 +33,10 @@ def getMessage():
         print(f"Error processing update: {e}")
         return "Error", 500
 
-# 1. القائمة الرئيسية عند الضغط على /start
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    user_states[message.chat.id] = {} # تصفير الحالة
-    
+    user_states[message.chat.id] = {}
     welcome_text = "مرحباً بك يا غالي في منظومة تحليل الشارتات الذكية! 📊✨\nاختر الخدمة المطلوبة ميكانيكياً من الأزرار أدناه:"
-    
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
         InlineKeyboardButton("1️⃣ تحليل شارت الذهب اليومي (تلقائي)", callback_data="analyze_gold_daily"),
@@ -47,21 +44,17 @@ def send_welcome(message):
         InlineKeyboardButton("3️⃣ تحليل شارت البيتكوين اليومي (تلقائي)", callback_data="analyze_btc_daily"),
         InlineKeyboardButton("4️⃣ تحليل وصفقة بتكوين (تحتاج صورة)", callback_data="trade_btc")
     )
-    
     bot.send_message(message.chat.id, welcome_text, reply_markup=markup)
 
-# 2. معالجة ضغطات الأزرار
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     chat_id = call.message.chat.id
     
-    # خيارات التحليل اليومي التلقائي (بدون صورة)
     if call.data in ["analyze_gold_daily", "analyze_btc_daily"]:
         asset = "الذهب (XAU/USD)" if call.data == "analyze_gold_daily" else "البيتكوين (BTC/USD)"
         bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
                               text=f"🔄 جاري سحب بيانات شارت {asset} اليومي وتحليله ميكانيكياً... انتظر ثواني يا غالي.")
         
-        # برومبت مخصص للتحليل اليومي العام بدون صورة
         prompt = (
             f"أنت خبير ومحلل فني متقدم تستخدم مفاهيم SMC و ICT. قم بتقديم تحليل يومي شامل وميكانيكي لحركة سعر {asset} الحالية. "
             "حدد هيكل السوق العام (Bullish/Bearish)، ومناطق السيولة اليومية القريبة، وتوقعات الاتجاه القادم مع تجنب فخاخ السوق تماماً. اكتب التحليل باللغة العربية بأسلوب واضح وبسيط."
@@ -73,7 +66,6 @@ def callback_inline(call):
         except Exception as e:
             bot.send_message(chat_id, f"❌ حدث خطأ أثناء جلب التحليل التلقائي: {str(e)}")
 
-    # خيارات التحليل والصفقة (تطلب تحديد الفريم أولاً)
     elif call.data in ["trade_gold", "trade_btc"]:
         asset = "الذهب" if call.data == "trade_gold" else "البيتكوين"
         user_states[chat_id] = {"action": "trade", "asset": asset}
@@ -89,7 +81,6 @@ def callback_inline(call):
                               text=f"🎯 ممتاز، اخترت تحليل وصفقة على {asset}.\nالآن حدد شمعة الفريم المراد العمل عليها أولاً:", 
                               reply_markup=markup)
 
-    # حفظ الفريم المختار وطلب الصورة
     elif call.data and str(call.data).startswith("frame_"):
         frames = {"frame_4h": "4 ساعات", "frame_1h": "ساعة واحدة", "frame_15m": "15 دقيقة", "frame_5m": "5 دقائق"}
         selected_frame = frames[call.data]
@@ -97,14 +88,12 @@ def callback_inline(call):
         if chat_id in user_states and "asset" in user_states[chat_id]:
             user_states[chat_id]["frame"] = selected_frame
             asset = user_states[chat_id]["asset"]
-            
             bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
                                   text=f"📥 تم تحديد فريم ({selected_frame}) لزوج {asset}.\n\n"
                                        "أرسل لي الآن صورة الشارت النظيفة من TradingView ليتم استخراج صفقة ذكية وقوية فوراً!")
         else:
             bot.send_message(chat_id, "⚠️ عذراً، يرجى إعادة بدء البوت عبر إرسال /start")
 
-# 3. استقبال الصورة وتحليلها بناءً على الفريم والصفقة
 @bot.message_handler(content_types=['photo'])
 def handle_chart_image(message):
     chat_id = message.chat.id
@@ -138,8 +127,7 @@ def handle_chart_image(message):
             
             bot.delete_message(chat_id, waiting_msg.message_id)
             bot.reply_to(message, response.text)
-            
-            user_states[chat_id] = {} # تصفير
+            user_states[chat_id] = {}
             
         except Exception as e:
             bot.reply_to(message, f"❌ حدث خطأ أثناء المعالجة: {str(e)}")
