@@ -8,7 +8,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 app = Flask('')
 
-# سحب التوكن والمفتاح بأمان كامل من إعدادات Render لمنع حظر جيت هاب
+# سحب التوكن والمفتاح بأمان ميكانيكي من إعدادات Render لمنع حظر جيت هاب الأمنية
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
@@ -60,7 +60,8 @@ def callback_inline(call):
             "حدد هيكل السوق العام (Bullish/Bearish)، ومناطق السيولة اليومية القريبة، وتوقعات الاتجاه القادم مع تجنب فخاخ السوق تماماً. اكتب التحليل باللغة العربية بأسلوب واضح وبسيط."
         )
         try:
-            model = genai.GenerativeModel('gemini-1.5-pro')
+            # استخدام الموديل المحدث والمستقر لتفادي خطأ الـ 404
+            model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(prompt)
             bot.send_message(chat_id, response.text)
         except Exception as e:
@@ -122,7 +123,8 @@ def handle_chart_image(message):
                 "اكتب النتيجة باللغة العربية بأسلوب احترافي ميكانيكي جاهز للتنفيذ فوراً."
             )
             
-            model = genai.GenerativeModel('gemini-1.5-pro')
+            # تحديث الموديل ليدعم تحليل الصور بدقة فائقة وبدون انقطاع
+            model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content([prompt, image])
             
             bot.delete_message(chat_id, waiting_msg.message_id)
