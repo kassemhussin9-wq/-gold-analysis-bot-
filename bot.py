@@ -8,8 +8,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 app = Flask('')
 
-# سحب التوكن والمفتاح بأمان ميكانيكي من إعدادات السيرفر
-TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN', '8970508610:AAHV_KC4f6fTRbdx3RDzAJ0Qf8SNMdB3NFA')
+# سحب التوكن والمفتاح بأمان كامل من إعدادات Render لمنع حظر جيت هاب
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
 if GOOGLE_API_KEY:
@@ -22,7 +22,7 @@ user_states = {}
 def home():
     return "Bot is secured and running 24/7 on Render!"
 
-@app.route('/' + TELEGRAM_TOKEN, methods=['POST'])
+@app.route('/' + TELEGRAM_TOKEN if TELEGRAM_TOKEN else '', methods=['POST'])
 def getMessage():
     try:
         json_string = request.get_data().decode('utf-8')
