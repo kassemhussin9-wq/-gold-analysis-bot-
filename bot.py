@@ -89,8 +89,8 @@ def callback_inline(call):
                               text=f"🎯 ممتاز، اخترت تحليل وصفقة على {asset}.\nالآن حدد شمعة الفريم المراد العمل عليها أولاً:", 
                               reply_markup=markup)
 
-    # حفظ الفريم المختار وطلب الصورة (تم تصحيح النقطة هنا بالملي)
-    elif call.data.startswith("frame_"):
+    # حفظ الفريم المختار وطلب الصورة (تم تعديل الشرط برمجياً بالكامل هنا)
+    elif call.data and str(call.data).startswith("frame_"):
         frames = {"frame_4h": "4 ساعات", "frame_1h": "ساعة واحدة", "frame_15m": "15 دقيقة", "frame_5m": "5 دقائق"}
         selected_frame = frames[call.data]
         
