@@ -89,8 +89,8 @@ def callback_inline(call):
                               text=f"🎯 ممتاز، اخترت تحليل وصفقة على {asset}.\nالآن حدد شمعة الفريم المراد العمل عليها أولاً:", 
                               reply_markup=markup)
 
-    # حفظ الفريم المختار وطلب الصورة
-    elif call.data startswith("frame_"):
+    # حفظ الفريم المختار وطلب الصورة (تم تصحيح النقطة هنا بالملي)
+    elif call.data.startswith("frame_"):
         frames = {"frame_4h": "4 ساعات", "frame_1h": "ساعة واحدة", "frame_15m": "15 دقيقة", "frame_5m": "5 دقائق"}
         selected_frame = frames[call.data]
         
@@ -131,7 +131,7 @@ def handle_chart_image(message):
                 "3. نقطة الدخول الصافية (Entry Price).\n"
                 "4. وقف الخسارة الحذر (Stop Loss).\n"
                 "5. الهدف النهائي (Take Profit) مع الالتزام الصارم والكامل بنسبة مخاطرة إلى عائد (Risk-to-Reward Ratio) تساوي 1:3 تماماً لتجنب فخاخ السوق.\n\n"
-                "اكتب النتيجة باللغة العربية بأسلوب احترافي ميكانيكي جاهز للتنفيذ."
+                "اكتب النتيجة باللغة العربية بأسلوب احترافي ميكانيكية جاهز للتنفيذ."
             )
             
             model = genai.GenerativeModel('gemini-1.5-pro')
