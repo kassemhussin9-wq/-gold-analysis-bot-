@@ -98,7 +98,6 @@ def callback_inline(call):
         if chat_id in user_states and "full_analysis" in user_states[chat_id]:
             analysis_text = user_states[chat_id]["full_analysis"]
             bot.send_message(chat_id, f"📊 **التحليل الفني التفصيلي بناءً على طلبك:**\n\n{analysis_text}", parse_mode="Markdown")
-            # تنظيف الحالة بعد إرسال التحليل
             user_states[chat_id] = {}
         else:
             bot.send_message(chat_id, "⚠️ انتهت صلاحية الجلسة أو لم يتم العثور على تحليل للصورة السابقة. يرجى إرسال شارت جديد.")
@@ -121,14 +120,17 @@ def handle_chart_image(message):
             prompt = (
                 f"أنت خبير محترف ومحلل متقدم تستخدم مفاهيم سمارت موني (SMC) ومنهجية ICT.\n"
                 f"أمامك صورة شارت لزوج {asset} فريم ({frame}).\n\n"
-                "قم بتحليل الصورة ميكانيكياً وبدقة حذرة جداً لتجنب الفخاخ. يجب أن تلتزم بنسبة مخاطرة إلى عائد (Risk-to-Reward Ratio) تساوي 1:3 تماماً.\n\n"
+                "قم بتحليل الصورة ميكانيكياً وبأعلى درجات الحذر لتجنب الفخاخ. الأولوية القصوى لك هي نسبة نجاح الصفقة (Win Rate) ودقة نقاط الدخول والستوب المدروس تماماً.\n"
+                "إذا كانت الصفقة مضمونة وقوية، يمكنك تقديم هدفين كحد أقصى بناءً على مستويات السيولة، بشرط ألا تقل نسبة عائد الهدف الأول عن 1:2 كحد أدنى من حجم المخاطرة.\n\n"
                 "أخرج لي الإجابة بدقة في قالب JSON يحتوي على المفاتيح التالية فقط لتسهيل معالجتها برمجياً وبدون أي نصوص إضافية خارج الـ JSON:\n"
                 "{\n"
                 '  "trade_type": "BUY" أو "SELL",\n'
                 '  "is_limit": true إذا كان الأمر معلق أو false إذا كان دخول مباشر بالماركت,\n'
-                '  "entry": "نقطة الدخول الصافية بالأرقام",\n'
-                '  "sl": "وقف الخسارة بالأرقام",\n'
-                '  "tp": "الهدف النهائي بالأرقام",\n'
+                '  "entry": "نقطة الدخول الصافية والمدروسة بالأرقام",\n'
+                '  "sl": "وقف الخسارة الحذر بالأرقام",\n'
+                '  "tp1": "الهدف الأول بالأرقام (عائد 1:2 كحد أدنى)",\n'
+                '  "tp2": "الهدف الثاني بالأرقام (إن وجد أو اكتب نفس قيمة الهدف الأول إذا لم يكن هناك هدف ثانٍ واضح)",\n'
+                '  "rr_ratio": "نسبة العائد الفعلي المقدرة مثل 1:2 أو 1:2.5 أو 1:3",\n'
                 '  "analysis": "اكتب هنا التحليل الفني المفصل والدقيق باللغة العربية بناءً على بنية السوق ومناطق الـ OB والـ FVG والسيولة بشكل كامل ليتم عرضه للمستخدم لاحقاً إذا طلب ذلك"\n'
                 "}"
             )
@@ -136,7 +138,6 @@ def handle_chart_image(message):
             model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content([prompt, image])
             
-            # تنظيف النص الناتج لاستخراج الـ JSON بأمان
             raw_text = response.text.strip()
             if raw_text.startswith("```json"):
                 raw_text = raw_text[7:]
@@ -145,11 +146,8 @@ def handle_chart_image(message):
             raw_text = raw_text.strip()
             
             data = json.loads(raw_text)
-            
-            # حفظ التحليل الكامل في ذاكرة البوت المؤقتة بناءً على طلبك
             user_states[chat_id]["full_analysis"] = data["analysis"]
             
-            # صياغة الرسالة الفورية بناءً على الرموز المطلوبة
             trade_type_str = ""
             if data["trade_type"] == "BUY":
                 order_name = "شراء معلّق (Buy Limit)" if data["is_limit"] else "شراء مباشر (Buy Market)"
@@ -158,19 +156,23 @@ def handle_chart_image(message):
                 order_name = "بيع معلّق (Sell Limit)" if data["is_limit"] else "بيع مباشر (Sell Market)"
                 trade_type_str = f"📈 **{order_name}**"
                 
+            # صياغة الأهداف بشكل مرن بناءً على التحديث
+            tp_section = f"🎯 الهدف الأول: `{data['tp1']}`"
+            if data['tp2'] and data['tp2'] != data['tp1']:
+                tp_section += f"\n🎯 الهدف الثاني: `{data['tp2']}`"
+                
             result_message = (
                 f"📊 **الصفقة المستخرجة لزوج {asset}:**\n\n"
                 f"{trade_type_str}\n"
                 f"📉 نقطة الدخول: `{data['entry']}`\n"
                 f"❌ وقف الخسارة: `{data['sl']}`\n"
-                f"🎯 الهدف النهائي: `{data['tp']}`\n\n"
+                f"{tp_section}\n\n"
                 f"⏱️ الفريم: {frame}\n"
-                f"⚖️ نسبة المخاطرة: 1:3 تماماً"
+                f"⚖️ نسبة العائد الفعلي: {data['rr_ratio']} (مركّزة على نسبة نجاح عالية)"
             )
             
             bot.delete_message(chat_id, waiting_msg.message_id)
             
-            # إنشاء الزر التفاعلي للسؤال عن التحليل
             markup = InlineKeyboardMarkup()
             markup.add(InlineKeyboardButton("❓ هل تريد رؤية التحليل الفني بناءً على الصورة؟", callback_data="request_analysis"))
             
