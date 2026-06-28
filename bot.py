@@ -3,12 +3,12 @@ import telebot
 import google.generativeai as genai
 from PIL import Image
 import io
+import json
 from flask import Flask, request
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 app = Flask('')
 
-# سحب التوكن والمفتاح بأمان ميكانيكي من إعدادات Render لمنع حظر جيت هاب الأمنية
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
@@ -60,7 +60,6 @@ def callback_inline(call):
             "حدد هيكل السوق العام (Bullish/Bearish)، ومناطق السيولة اليومية القريبة، وتوقعات الاتجاه القادم مع تجنب فخاخ السوق تماماً. اكتب التحليل باللغة العربية بأسلوب واضح وبسيط."
         )
         try:
-            # استخدام الموديل المحدث والمستقر لتفادي خطأ الـ 404
             model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(prompt)
             bot.send_message(chat_id, response.text)
@@ -95,6 +94,15 @@ def callback_inline(call):
         else:
             bot.send_message(chat_id, "⚠️ عذراً، يرجى إعادة بدء البوت عبر إرسال /start")
 
+    elif call.data == "request_analysis":
+        if chat_id in user_states and "full_analysis" in user_states[chat_id]:
+            analysis_text = user_states[chat_id]["full_analysis"]
+            bot.send_message(chat_id, f"📊 **التحليل الفني التفصيلي بناءً على طلبك:**\n\n{analysis_text}", parse_mode="Markdown")
+            # تنظيف الحالة بعد إرسال التحليل
+            user_states[chat_id] = {}
+        else:
+            bot.send_message(chat_id, "⚠️ انتهت صلاحية الجلسة أو لم يتم العثور على تحليل للصورة السابقة. يرجى إرسال شارت جديد.")
+
 @bot.message_handler(content_types=['photo'])
 def handle_chart_image(message):
     chat_id = message.chat.id
@@ -104,7 +112,7 @@ def handle_chart_image(message):
         frame = user_states[chat_id]["frame"]
         
         try:
-            waiting_msg = bot.reply_to(message, f"جاري قراءة شارت {asset} على فريم {frame} ميكانيكياً واستخراج الصفقة الذكية... 🔄")
+            waiting_msg = bot.reply_to(message, f"جاري استخراج الصفقة الميكانيكية الصافية لزوج {asset}... 🔄")
             
             file_info = bot.get_file(message.photo[-1].file_id)
             downloaded_file = bot.download_file(file_info.file_path)
@@ -112,24 +120,61 @@ def handle_chart_image(message):
             
             prompt = (
                 f"أنت خبير محترف ومحلل متقدم تستخدم مفاهيم سمارت موني (SMC) ومنهجية ICT.\n"
-                f"أمامك صورة شارت لزوج {asset}. تم تحديد فريم التداول ليكون عيار شمعة ({frame}) تماماً.\n\n"
-                "حلل الصورة بدقة ميكانيكية حذرة جداً وتجنب الفخاخ تماماً (Fake Breakouts / Market Traps).\n"
-                "بناءً على التحليل، استخرج صفقة ذكية وقوية تتضمن النقاط التالية بالترتيب وبشكل واضح:\n"
-                "1. هيكل السوق الحالي على الفريم المحدد والاتجاه العام.\n"
-                "2. مستويات الـ Order Blocks المستهدفة والسيولة (Liquidity Sweeps) والفجوات السعرية (FVG).\n"
-                "3. نقطة الدخول الصافية (Entry Price).\n"
-                "4. وقف الخسارة الحذر (Stop Loss).\n"
-                "5. الهدف النهائي (Take Profit) مع الالتزام الصارم والكامل بنسبة مخاطرة إلى عائد (Risk-to-Reward Ratio) تساوي 1:3 تماماً لتجنب فخاخ السوق.\n\n"
-                "اكتب النتيجة باللغة العربية بأسلوب احترافي ميكانيكي جاهز للتنفيذ فوراً."
+                f"أمامك صورة شارت لزوج {asset} فريم ({frame}).\n\n"
+                "قم بتحليل الصورة ميكانيكياً وبدقة حذرة جداً لتجنب الفخاخ. يجب أن تلتزم بنسبة مخاطرة إلى عائد (Risk-to-Reward Ratio) تساوي 1:3 تماماً.\n\n"
+                "أخرج لي الإجابة بدقة في قالب JSON يحتوي على المفاتيح التالية فقط لتسهيل معالجتها برمجياً وبدون أي نصوص إضافية خارج الـ JSON:\n"
+                "{\n"
+                '  "trade_type": "BUY" أو "SELL",\n'
+                '  "is_limit": true إذا كان الأمر معلق أو false إذا كان دخول مباشر بالماركت,\n'
+                '  "entry": "نقطة الدخول الصافية بالأرقام",\n'
+                '  "sl": "وقف الخسارة بالأرقام",\n'
+                '  "tp": "الهدف النهائي بالأرقام",\n'
+                '  "analysis": "اكتب هنا التحليل الفني المفصل والدقيق باللغة العربية بناءً على بنية السوق ومناطق الـ OB والـ FVG والسيولة بشكل كامل ليتم عرضه للمستخدم لاحقاً إذا طلب ذلك"\n'
+                "}"
             )
             
-            # تحديث الموديل ليدعم تحليل الصور بدقة فائقة وبدون انقطاع
             model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content([prompt, image])
             
+            # تنظيف النص الناتج لاستخراج الـ JSON بأمان
+            raw_text = response.text.strip()
+            if raw_text.startswith("```json"):
+                raw_text = raw_text[7:]
+            if raw_text.endswith("```"):
+                raw_text = raw_text[:-3]
+            raw_text = raw_text.strip()
+            
+            data = json.loads(raw_text)
+            
+            # حفظ التحليل الكامل في ذاكرة البوت المؤقتة بناءً على طلبك
+            user_states[chat_id]["full_analysis"] = data["analysis"]
+            
+            # صياغة الرسالة الفورية بناءً على الرموز المطلوبة
+            trade_type_str = ""
+            if data["trade_type"] == "BUY":
+                order_name = "شراء معلّق (Buy Limit)" if data["is_limit"] else "شراء مباشر (Buy Market)"
+                trade_type_str = f"📉 **{order_name}**"
+            else:
+                order_name = "بيع معلّق (Sell Limit)" if data["is_limit"] else "بيع مباشر (Sell Market)"
+                trade_type_str = f"📈 **{order_name}**"
+                
+            result_message = (
+                f"📊 **الصفقة المستخرجة لزوج {asset}:**\n\n"
+                f"{trade_type_str}\n"
+                f"📉 نقطة الدخول: `{data['entry']}`\n"
+                f"❌ وقف الخسارة: `{data['sl']}`\n"
+                f"🎯 الهدف النهائي: `{data['tp']}`\n\n"
+                f"⏱️ الفريم: {frame}\n"
+                f"⚖️ نسبة المخاطرة: 1:3 تماماً"
+            )
+            
             bot.delete_message(chat_id, waiting_msg.message_id)
-            bot.reply_to(message, response.text)
-            user_states[chat_id] = {}
+            
+            # إنشاء الزر التفاعلي للسؤال عن التحليل
+            markup = InlineKeyboardMarkup()
+            markup.add(InlineKeyboardButton("❓ هل تريد رؤية التحليل الفني بناءً على الصورة؟", callback_data="request_analysis"))
+            
+            bot.send_message(chat_id, result_message, reply_markup=markup, parse_mode="Markdown")
             
         except Exception as e:
             bot.reply_to(message, f"❌ حدث خطأ أثناء المعالجة: {str(e)}")
