@@ -20,7 +20,7 @@ user_states = {}
 
 @app.route('/')
 def home():
-    return "Bot is secured and running 24/7 on Render!"
+    return "Bot is secured, enhanced, and running 24/7 on Render!"
 
 @app.route('/' + TELEGRAM_TOKEN if TELEGRAM_TOKEN else '', methods=['POST'])
 def getMessage():
@@ -36,7 +36,7 @@ def getMessage():
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_states[message.chat.id] = {}
-    welcome_text = "مرحباً بك يا غالي في منظومة تحليل الشارتات الذكية! 📊✨\nاختر الخدمة المطلوبة ميكانيكياً من الأزرار أدناه:"
+    welcome_text = "مرحباً بك يا غالي في منظومة تحليل الشارتات المطوّرة! 📊✨\nتم تحديث الخوارزمية بفلاتر سيولة صارمة لتجنب الفخاخ. اختر الخدمة:"
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
         InlineKeyboardButton("1️⃣ تحليل شارت الذهب اليومي (تلقائي)", callback_data="analyze_gold_daily"),
@@ -53,11 +53,11 @@ def callback_inline(call):
     if call.data in ["analyze_gold_daily", "analyze_btc_daily"]:
         asset = "الذهب (XAU/USD)" if call.data == "analyze_gold_daily" else "البيتكوين (BTC/USD)"
         bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
-                              text=f"🔄 جاري سحب بيانات شارت {asset} اليومي وتحليله ميكانيكياً... انتظر ثواني يا غالي.")
+                              text=f"🔄 جاري سحب بيانات شارت {asset} اليومي وتحليله ميكانيكياً بفلاتر السيولة... انتظر ثواني يا غالي.")
         
         prompt = (
             f"أنت خبير ومحلل فني متقدم تستخدم مفاهيم SMC و ICT. قم بتقديم تحليل يومي شامل وميكانيكي لحركة سعر {asset} الحالية. "
-            "حدد هيكل السوق العام (Bullish/Bearish)، ومناطق السيولة اليومية القريبة، وتوقعات الاتجاه القادم مع تجنب فخاخ السوق تماماً. اكتب التحليل باللغة العربية بأسلوب واضح وبسيط."
+            "حدد هيكل السوق العام مع التركيز على كشف مصايد ومصائد صناع السوق (Market Traps) والكسر الكاذب. اكتب التحليل باللغة العربية بأسلوب صارم ودقيق."
         )
         try:
             model = genai.GenerativeModel('gemini-2.5-flash')
@@ -78,7 +78,7 @@ def callback_inline(call):
             InlineKeyboardButton("⏱️ 5 دقائق (5M)", callback_data="frame_5m")
         )
         bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
-                              text=f"🎯 ممتاز، اخترت تحليل وصفقة على {asset}.\nالآن حدد شمعة الفريم المراد العمل عليها أولاً:", 
+                              text=f"🎯 ممتاز، اخترت استخراج صفقة قوية على {asset}.\nحدد فريم العمل المراد تصفية السيولة بناءً عليه:", 
                               reply_markup=markup)
 
     elif call.data and str(call.data).startswith("frame_"):
@@ -90,14 +90,14 @@ def callback_inline(call):
             asset = user_states[chat_id]["asset"]
             bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
                                   text=f"📥 تم تحديد فريم ({selected_frame}) لزوج {asset}.\n\n"
-                                       "أرسل لي الآن صورة الشارت النظيفة من TradingView ليتم استخراج صفقة ذكية وقوية فوراً!")
+                                       "أرسل لي الآن صورة الشارت النظيفة من TradingView. سيتم فحص مناطق السيولة والدخول بحذر مضاعف!")
         else:
             bot.send_message(chat_id, "⚠️ عذراً، يرجى إعادة بدء البوت عبر إرسال /start")
 
     elif call.data == "request_analysis":
         if chat_id in user_states and "full_analysis" in user_states[chat_id]:
             analysis_text = user_states[chat_id]["full_analysis"]
-            bot.send_message(chat_id, f"📊 **التحليل الفني التفصيلي بناءً على طلبك:**\n\n{analysis_text}", parse_mode="Markdown")
+            bot.send_message(chat_id, f"📊 **التحليل الفني والفلترة الميكانيكية ضد الفخاخ:**\n\n{analysis_text}", parse_mode="Markdown")
             user_states[chat_id] = {}
         else:
             bot.send_message(chat_id, "⚠️ انتهت صلاحية الجلسة أو لم يتم العثور على تحليل للصورة السابقة. يرجى إرسال شارت جديد.")
@@ -111,27 +111,30 @@ def handle_chart_image(message):
         frame = user_states[chat_id]["frame"]
         
         try:
-            waiting_msg = bot.reply_to(message, f"جاري استخراج الصفقة الميكانيكية الصافية لزوج {asset}... 🔄")
+            waiting_msg = bot.reply_to(message, f"🔍 جاري تشغيل الفلاتر الميكانيكية المتقدمة وفحص فخاخ السيولة لزوج {asset}... 🔄")
             
             file_info = bot.get_file(message.photo[-1].file_id)
             downloaded_file = bot.download_file(file_info.file_path)
             image = Image.open(io.BytesIO(downloaded_file))
             
             prompt = (
-                f"أنت خبير محترف ومحلل متقدم تستخدم مفاهيم سمارت موني (SMC) ومنهجية ICT.\n"
+                f"أنت خبير محترف ومحلل متقدم جداً تستخدم مفاهيم سمارت موني (SMC) ومنهجية ICT.\n"
                 f"أمامك صورة شارت لزوج {asset} فريم ({frame}).\n\n"
-                "قم بتحليل الصورة ميكانيكياً وبأعلى درجات الحذر لتجنب الفخاخ. الأولوية القصوى لك هي نسبة نجاح الصفقة (Win Rate) ودقة نقاط الدخول والستوب المدروس تماماً.\n"
-                "إذا كانت الصفقة مضمونة وقوية، يمكنك تقديم هدفين كحد أقصى بناءً على مستويات السيولة، بشرط ألا تقل نسبة عائد الهدف الأول عن 1:2 كحد أدنى من حجم المخاطرة.\n\n"
-                "أخرج لي الإجابة بدقة في قالب JSON يحتوي على المفاتيح التالية فقط لتسهيل معالجتها برمجياً وبدون أي نصوص إضافية خارج الـ JSON:\n"
+                "مهمتك الأساسية هي حماية المتداول من ضرب الستوب الكاذب واكتشاف مصايد صناع السوق (Market Traps) والكسور المزيفة للقمم والقيعان قبل اقتراح الصفقة.\n"
+                "طبق الفلاتر التالية بدقة:\n"
+                "1. تأكد من وجود كسر حقيقي لبنية السوق (True MSS/BOS) وليس مجرد ذيل شمعة لجمع السيولة.\n"
+                "2. حدد منطقة الدخول (Entry) الصارمة حصرياً داخل منطقة الخصم (Discount Area) للشراء، أو منطقة الممتاز (Premium Area) للبيع، ليكون الستوب صغير ومحمي تماماً.\n"
+                "3. ضع الأهداف (هدفين كحد أقصى) عند مناطق سيولة رئيسية ومضمونة قريبة، على أن تبدأ نسبة العائد من 1:2 كحد أدنى لضمان نسبة نجاح عالية جداً (Win Rate).\n\n"
+                "أخرج لي الإجابة بدقة في قالب JSON يحتوي على المفاتيح التالية فقط وبدون أي نصوص إضافية خارج الـ JSON:\n"
                 "{\n"
                 '  "trade_type": "BUY" أو "SELL",\n'
                 '  "is_limit": true إذا كان الأمر معلق أو false إذا كان دخول مباشر بالماركت,\n'
-                '  "entry": "نقطة الدخول الصافية والمدروسة بالأرقام",\n'
-                '  "sl": "وقف الخسارة الحذر بالأرقام",\n'
-                '  "tp1": "الهدف الأول بالأرقام (عائد 1:2 كحد أدنى)",\n'
-                '  "tp2": "الهدف الثاني بالأرقام (إن وجد أو اكتب نفس قيمة الهدف الأول إذا لم يكن هناك هدف ثانٍ واضح)",\n'
-                '  "rr_ratio": "نسبة العائد الفعلي المقدرة مثل 1:2 أو 1:2.5 أو 1:3",\n'
-                '  "analysis": "اكتب هنا التحليل الفني المفصل والدقيق باللغة العربية بناءً على بنية السوق ومناطق الـ OB والـ FVG والسيولة بشكل كامل ليتم عرضه للمستخدم لاحقاً إذا طلب ذلك"\n'
+                '  "entry": "نقطة الدخول الفلترة بالأرقام",\n'
+                '  "sl": "وقف الخسارة المحمي تماماً خلف مستويات السيولة بالأرقام",\n'
+                '  "tp1": "الهدف الأول المضمون بالأرقام (عائد 1:2 كحد أدنى)",\n'
+                '  "tp2": "الهدف الثاني بالأرقام (إن وجد أو اكتب نفس قيمة الهدف الأول إذا لم يكن هناك هدف ثانٍ)",\n'
+                '  "rr_ratio": "نسبة العائد الفعلي المقدرة"،\n'
+                '  "analysis": "اشرح هنا ميكانيكياً أين كانت الفخاخ (Market Traps) وكيف تم تجنبها وتحديد الدخول الآمن والستوب المحمي بناءً على الـ OB والـ FVG باللغة العربية"\n'
                 "}"
             )
             
@@ -156,25 +159,25 @@ def handle_chart_image(message):
                 order_name = "بيع معلّق (Sell Limit)" if data["is_limit"] else "بيع مباشر (Sell Market)"
                 trade_type_str = f"📈 **{order_name}**"
                 
-            # صياغة الأهداف بشكل مرن بناءً على التحديث
             tp_section = f"🎯 الهدف الأول: `{data['tp1']}`"
             if data['tp2'] and data['tp2'] != data['tp1']:
                 tp_section += f"\n🎯 الهدف الثاني: `{data['tp2']}`"
                 
             result_message = (
-                f"📊 **الصفقة المستخرجة لزوج {asset}:**\n\n"
+                f"📊 **الصفقة المستخرجة لزوج {asset} (بعد الفلترة القوية):**\n\n"
                 f"{trade_type_str}\n"
                 f"📉 نقطة الدخول: `{data['entry']}`\n"
                 f"❌ وقف الخسارة: `{data['sl']}`\n"
                 f"{tp_section}\n\n"
                 f"⏱️ الفريم: {frame}\n"
-                f"⚖️ نسبة العائد الفعلي: {data['rr_ratio']} (مركّزة على نسبة نجاح عالية)"
+                f"⚖️ نسبة العائد: {data['rr_ratio']}\n"
+                f"🛡️ حالة الحماية: مُفلترة ومحمية ضد الكسر الكاذب"
             )
             
             bot.delete_message(chat_id, waiting_msg.message_id)
             
             markup = InlineKeyboardMarkup()
-            markup.add(InlineKeyboardButton("❓ هل تريد رؤية التحليل الفني بناءً على الصورة؟", callback_data="request_analysis"))
+            markup.add(InlineKeyboardButton("❓ هل تريد رؤية فخاخ السوق التي تم تجنبها والتحليل؟", callback_data="request_analysis"))
             
             bot.send_message(chat_id, result_message, reply_markup=markup, parse_mode="Markdown")
             
