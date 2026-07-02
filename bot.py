@@ -20,7 +20,7 @@ user_states = {}
 
 @app.route('/')
 def home():
-    return "Bot is running 24/7 with the 2.18 Mathematical Strategy incorporated!"
+    return "Bot is running 24/7 with Adaptive Scalping (5M/15M) and Swing (1H/4H) 2.18 Strategy!"
 
 @app.route('/' + TELEGRAM_TOKEN if TELEGRAM_TOKEN else '', methods=['POST'])
 def getMessage():
@@ -37,13 +37,15 @@ def getMessage():
 def send_welcome(message):
     user_states[message.chat.id] = {}
     welcome_text = (
-        "مرحباً بك يا غالي في منظومة تحليل الشارتات المطوّرة! 📊✨\n"
-        "تم دمج الاستراتيجية الرقمية الميكانيكية (2.18) لحساب القمم والقيعان بدقة وتجنب فخاخ صناع السوق. اختر الخدمة:"
+        "مرحباً بك يا غالي في منظومة تحليل الشارتات الذكية المتغيرة ميكانيكياً! 📊✨\n\n"
+        "🟢 فريمات 5M و 15M -> تفعل وضع السكالبينج (ستوب قريب وريشيو سريع).\n"
+        "🔵 فريمات 1H و 4H -> تفعل وضع السوينج (أهداف ممتدة وستوب محمي).\n"
+        "اختر الخدمة لبدء العمل الحسابي:"
     )
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
         InlineKeyboardButton("1️⃣ تحليل شارت الذهب اليومي (تلقائي)", callback_data="analyze_gold_daily"),
-        InlineKeyboardButton("2️⃣ استخراج صفقة رقمية ميكانيكية (تحتاج صورة)", callback_data="trade_gold"),
+        InlineKeyboardButton("2️⃣ استخراج صفقة ميكانيكية (تحتاج صورة)", callback_data="trade_gold"),
         InlineKeyboardButton("3️⃣ تحليل شارت البيتكوين اليومي (تلقائي)", callback_data="analyze_btc_daily"),
         InlineKeyboardButton("4️⃣ استخراج صفقة بتكوين ميكانيكية (تحتاج صورة)", callback_data="trade_btc")
     )
@@ -75,13 +77,13 @@ def callback_inline(call):
         
         markup = InlineKeyboardMarkup(row_width=2)
         markup.add(
-            InlineKeyboardButton("⏱️ 4 ساعات (4H)", callback_data="frame_4h"),
-            InlineKeyboardButton("⏱️ ساعة واحدة (1H)", callback_data="frame_1h"),
-            InlineKeyboardButton("⏱️ 15 دقيقة (15M)", callback_data="frame_15m"),
-            InlineKeyboardButton("⏱️ 5 دقائق (5M)", callback_data="frame_5m")
+            InlineKeyboardButton("⏱️ 4 ساعات (4H) - [Swing]", callback_data="frame_4h"),
+            InlineKeyboardButton("⏱️ ساعة واحدة (1H) - [Swing]", callback_data="frame_1h"),
+            InlineKeyboardButton("⏱️ 15 دقيقة (15M) - [Scalp]", callback_data="frame_15m"),
+            InlineKeyboardButton("⏱️ 5 دقائق (5M) - [Scalp]", callback_data="frame_5m")
         )
         bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
-                              text=f"🎯 ممتاز، اخترت استخراج صفقة ميكانيكية قوية على {asset}.\nحدد فريم العمل لتطبيق الحسبة الرقمية وفحص الشارت:", 
+                                  text=f"🎯 ممتاز، اخترت استخراج صفقة ميكانيكية على {asset}.\nحدد فريم العمل المطلوب الحين:", 
                               reply_markup=markup)
 
     elif call.data and str(call.data).startswith("frame_"):
@@ -91,16 +93,19 @@ def callback_inline(call):
         if chat_id in user_states and "asset" in user_states[chat_id]:
             user_states[chat_id]["frame"] = selected_frame
             asset = user_states[chat_id]["asset"]
+            
+            mode_text = "⚡ وضع السكالبينج السريع (ستوب قريب)" if call.data in ["frame_5m", "frame_15m"] else "🏢 وضع السوينج الممتد (ستوب محمي)"
+            
             bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
-                                  text=f"📥 تم تحديد فريم ({selected_frame}) لزوج {asset}.\n\n"
-                                       "أرسل لي الآن صورة الشارت النظيفة من TradingView. سيقوم البوت بقراءة القمة والقاع وتطبيق معادلة الـ 2.18 فوراً!")
+                                  text=f"📥 تم تحديد فريم ({selected_frame}) لزوج {asset}.\n⚙️ النظام تم تحويله تلقائياً إلى: **{mode_text}**.\n\n"
+                                       "أرسل لي الآن صورة الشارت النظيفة لتطبيق المعادلة الحسابية المتوافقة بالملي!")
         else:
             bot.send_message(chat_id, "⚠️ عذراً، يرجى إعادة بدء البوت عبر إرسال /start")
 
     elif call.data == "request_analysis":
         if chat_id in user_states and "full_analysis" in user_states[chat_id]:
             analysis_text = user_states[chat_id]["full_analysis"]
-            bot.send_message(chat_id, f"📊 **التحليل الرقمي الميكانيكي وتفسير الفخاخ:**\n\n{analysis_text}", parse_mode="Markdown")
+            bot.send_message(chat_id, f"📊 **التفسير الميكانيكي ومكافحة فخاخ السيولة:**\n\n{analysis_text}", parse_mode="Markdown")
             user_states[chat_id] = {}
         else:
             bot.send_message(chat_id, "⚠️ انتهت صلاحية الجلسة أو لم يتم العثور على تحليل للصورة السابقة.")
@@ -113,8 +118,12 @@ def handle_chart_image(message):
         asset = user_states[chat_id]["asset"]
         frame = user_states[chat_id]["frame"]
         
+        # تحديد نمط التداول برمجياً بناءً على الفريم لضمان دقة الستوب والريشيو
+        is_scalping = "true" if frame in ["5 دقائق", "15 دقيقة"] else "false"
+        mode_label = "⚡ سـكـالـبـيـنـج سـريـع" if is_scalping == "true" else "🏢 ســويــنــج مـمـتـد"
+        
         try:
-            waiting_msg = bot.reply_to(message, f"🔍 جاري استخراج القمة والقاع من شارت {asset} وتطبيق معادلة 2.18 الرياضية... 🔄")
+            waiting_msg = bot.reply_to(message, f"🔍 جاري قراءة الشارت وتطبيق معادلة 2.18 بنمط [{mode_label}]... 🔄")
             
             file_info = bot.get_file(message.photo[-1].file_id)
             downloaded_file = bot.download_file(file_info.file_path)
@@ -123,23 +132,25 @@ def handle_chart_image(message):
             prompt = (
                 f"أنت خبير محترف ومحلل متقدم جداً تستخدم مفاهيم سمارت موني (SMC) والتحليل الرقمي الرياضي.\n"
                 f"أمامك صورة شارت لزوج {asset} فريم ({frame}).\n\n"
-                "مهمتك الأساسية هي تطبيق الاستراتيجية الرياضية التالية بالملي وبدقة متناهية:\n"
-                "1. استخرج من الصورة قيمة أعلى قمة واضحة وأدنى قاع واضح للحركة الحالية.\n"
-                "2. قم بحساب الفارق بين القمة والقاع (القمة - القاع).\n"
-                "3. اقسم الناتج على الثابت الرياضي الميكانيكي (2.18) بدقة لاستخراج قيمة الموجة التصحيحية والهدف الممتد.\n"
-                "4. إذا كان الهيكل العام مائل للصعود (الاتجاه الحالي صاعد)، ضع أمر شراء معلق (Buy Limit) حيث تكون نقطة الدخول = (القمة - القيمة المقسمة)، وقف الخسارة محمي تماماً تحت القاع الرئيسي، الهدف الأول (TP1) عند القمة السابقة (مما يمنح ريشيو 1:2)، والهدف الثاني (TP2) عند (القمة + القيمة المقسمة) لضرب السيولة العلوية (مما يمنح ريشيو 1:4).\n"
-                "5. إذا كان الاتجاه هابطاً، اعكس العملية ميكانيكياً لصفقة بيع معلق (Sell Limit).\n\n"
+                f"مهمتك الأساسية هي تطبيق الاستراتيجية الرياضية 2.18 بناءً على نمط التداول الحالي وهو: ({mode_label}).\n"
+                f"هل هذا النمط سكالبينج؟ الإجابة: {is_scalping}.\n\n"
+                "اتبع القواعد الصارمة التالية أثناء استخراج المعطيات وحساب الصفقة:\n"
+                "1. إذا كان النمط سكالبينج (true): قم بتركيز نظرك بالكامل على الموجة الحالية الأخيرة المتذبذبة على اليمين فقط (Local Swing High / Local Swing Low). استخرج أعلى قمة وأقرب قاع فرعي للموجة الأخيرة، وتجاهل تماماً القيعان التاريخية البعيدة على اليسار. يجب أن يكون الستوب (SL) صغيراً جداً وقريباً ومحميّاً تحت القاع الفرعي الأخير مباشرة أو بمسافة بسيطة ليكون الريشيو ممتازاً وعائداً سريعاً.\n"
+                "2. إذا كان النمط سوينج (false): قم بمسح الشارت بشكل أوسع واستخرج القمة الرئيسية والقاع التاريخي الرئيسي لتأمين الصفقة بوقف خسارة يستحمل تقلبات المدى الطويل.\n"
+                "3. طبق الحسبة الرياضية: الفارق = (القمة - القاع). ثم اقسم الفارق على الثابت (2.18).\n"
+                "4. حساب نقطة الدخول في الاتجاه الصاعد = (القمة - القيمة المقسمة). وفي الهابط العكس تماماً.\n"
+                "5. حدد الهدف الأول (TP1) عند القمة السابقة (مما يمنح ريشيو 1:2 كحد أدنى)، والهدف الثاني (TP2) عند (القمة + القيمة المقسمة) لضرب السيولة العلوية (مما يمنح ريشيو 1:4).\n\n"
                 "أخرج لي الإجابة بدقة كاملة في قالب JSON يحتوي على المفاتيح التالية فقط وبدون أي نصوص إضافية خارج الـ JSON:\n"
                 "{\n"
                 '  "trade_type": "BUY" أو "SELL",\n'
-                '  "extracted_high": "قيمة القمة المستخرجة بالأرقام",\n'
-                '  "extracted_low": "قيمة القاع المستخرجة بالأرقام",\n'
+                '  "extracted_high": "قيمة القمة المستخرجة حسب النمط",\n'
+                '  "extracted_low": "قيمة القاع المستخرج حسب النمط",\n'
                 '  "entry": "نقطة الدخول المحسوبة بالمعادلة الرقمية بالأرقام",\n'
-                '  "sl": "وقف الخسارة المحمي تماماً بالأرقام",\n'
-                '  "tp1": "الهدف الأول (القمة السابقة في الشراء أو القاع في البيع)",\n'
-                '  "tp2": "الهدف الممتد الثاني المحسوب بالمعادلة الرقمية بالأرقام",\n'
-                '  "rr_ratio": "توضيح الريشيو المقدر (مثال: 1:2 للهدف الأول و 1:4 للثاني)",\n'
-                '  "analysis": "اشرح هنا باللغة العربية تفاصيل الحسبة الرياضية المستخرجة وكيف تتطابق مع مستويات السيولة والـ FVG والـ Order Block لحماية الحساب من الفخاخ الكاذبة"\n'
+                '  "sl": "وقف الخسارة المحمي والقريب حسب النمط الحالي ليكون الريشيو ممتازاً",\n'
+                '  "tp1": "الهدف الأول الميكانيكي بالأرقام",\n'
+                '  "tp2": "الهدف الممتد الثاني بالأرقام",\n'
+                '  "rr_ratio": "توضيح الريشيو المحسوب الفعلي للهدفين",\n'
+                '  "analysis": "اشرح هنا باللغة العربية تفاصيل الحسبة الرياضية وكيف تم التعامل مع الستوب بما يتناسب مع الفريم ونمط التداول المختار لحماية المتداول من مصايد السيولة"\n'
                 "}"
             )
             
@@ -160,17 +171,18 @@ def handle_chart_image(message):
             icon = "📉" if data["trade_type"] == "BUY" else "📈"
                 
             result_message = (
+                f"⚙️ **نمط التداول المفعّل:** `{mode_label}`\n"
                 f"📊 **الصفقة الرقمية المستخرجة (استراتيجية 2.18):**\n\n"
                 f"{icon} **نوع الأمر:** `{order_name}`\n"
-                f"🔺 القمة المستخرجة: `{data['extracted_high']}`\n"
-                f"🔻 القاع المستخرج: `{data['extracted_low']}`\n"
+                f"🔺 القمة المعتمدة: `{data['extracted_high']}`\n"
+                f"🔻 القاع المعتمد: `{data['extracted_low']}`\n"
                 f"🎯 **نقطة الدخول:** `{data['entry']}`\n"
                 f"❌ **وقف الخسارة:** `{data['sl']}`\n"
                 f"🎯 **الهدف الأول:** `{data['tp1']}`\n"
                 f"🎯 **الهدف الثاني:** `{data['tp2']}`\n\n"
                 f"⏱️ الفريم: {frame}\n"
                 f"⚖️ نسبة العائد (الريشيو): {data['rr_ratio']}\n"
-                f"🛡️ حالة الحماية: تصفية ميكانيكية صارمة ضد الكسر الكاذب"
+                f"🛡️ حالة الحماية: تصفية ذكية متكيفة مع نوع الفريم"
             )
             
             bot.delete_message(chat_id, waiting_msg.message_id)
@@ -181,7 +193,7 @@ def handle_chart_image(message):
             bot.send_message(chat_id, result_message, reply_markup=markup, parse_mode="Markdown")
             
         except Exception as e:
-            bot.reply_to(message, f"❌ حدث خطأ أثناء المعالجة الرياضية: {str(e)}")
+            bot.reply_to(message, f"❌ حدث خطأ أثناء المعالجة الميكانيكية المتقدمة: {str(e)}")
     else:
         bot.reply_to(message, "⚠️ من فضلك يا غالي، اضغط على /start أولاً واختر الخدمة وحدد الفريم قبل إرسال الصورة.")
 
