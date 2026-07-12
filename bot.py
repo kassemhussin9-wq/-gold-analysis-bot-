@@ -6,6 +6,7 @@ import urllib.request
 import time
 from flask import Flask, request
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+import yfinance as yf
 
 app = Flask('')
 
@@ -20,42 +21,35 @@ user_states = {}
 
 def fetch_live_market_data(asset_type, frame_choice):
     limit = 30
-    # تحديث الهيدر عشان نتخطى حظر ياهو فاينانس
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache'
-    }
     try:
         if asset_type == "الذهب":
-            period = "5d" if frame_choice in ["5 دقائق", "15 دقيقة"] else "30d"
+            # استخدام yfinance لكسر حظر ياهو فاينانس
+            period_map = {"5 دقائق": "1d", "15 دقيقة": "5d", "ساعة واحدة": "1mo", "4 ساعات": "1mo"}
             interval_map = {"5 دقائق": "5m", "15 دقيقة": "15m", "ساعة واحدة": "1h", "4 ساعات": "1h"}
-            sub_int = interval_map.get(frame_choice, "1h")
             
-            # إضافة رقم عشوائي كـ Timestamp لمنع الكاش
-            url = f"https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range={period}&interval={sub_int}&t={int(time.time())}"
-            req = urllib.request.Request(url, headers=headers)
+            ticker = yf.Ticker("GC=F")
+            df = ticker.history(period=period_map.get(frame_choice, "5d"), interval=interval_map.get(frame_choice, "1h"))
             
-            with urllib.request.urlopen(req, timeout=15) as response:
-                json_data = json.loads(response.read().decode())
-                result = json_data["chart"]["result"][0]
-                indicators = result["indicators"]["quote"][0]
+            if df.empty:
+                return None
                 
-                market_summary = []
-                for i in range(len(result["timestamp"])):
-                    if indicators["open"][i] and indicators["high"][i] and indicators["low"][i] and indicators["close"][i]:
-                        market_summary.append({
-                            "open": round(float(indicators["open"][i]), 2),
-                            "high": round(float(indicators["high"][i]), 2),
-                            "low": round(float(indicators["low"][i]), 2),
-                            "close": round(float(indicators["close"][i]), 2)
-                        })
-                return market_summary[-limit:]
+            market_summary = []
+            for index, row in df.tail(limit).iterrows():
+                market_summary.append({
+                    "open": round(float(row['Open']), 2),
+                    "high": round(float(row['High']), 2),
+                    "low": round(float(row['Low']), 2),
+                    "close": round(float(row['Close']), 2)
+                })
+            return market_summary
+            
         else:
+            # البيتكوين عبر منصة بينانس (سريعة وبدون حظر)
             interval_map = {"5 دقائق": "5m", "15 دقيقة": "15m", "ساعة واحدة": "1h", "4 ساعات": "4h"}
             sub_int = interval_map.get(frame_choice, "1h")
             url = f"https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval={sub_int}&limit={limit}"
             
+            headers = {'User-Agent': 'Mozilla/5.0'}
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=10) as response:
                 res_data = json.loads(response.read().decode())
@@ -75,7 +69,7 @@ def fetch_live_market_data(asset_type, frame_choice):
 
 @app.route('/')
 def home():
-    return "Bot Engine Fully Protected with Bulletproof Pipe Extraction!"
+    return "Bot Engine Fully Protected with yFinance Bypass!"
 
 @app.route('/' + TELEGRAM_TOKEN if TELEGRAM_TOKEN else '', methods=['POST'])
 def getMessage():
@@ -119,7 +113,7 @@ def callback_inline(call):
             InlineKeyboardButton("⏱️ 4 ساعات (4H)", callback_data="frame_4h")
         )
         bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
-                              text=f"🎯 ممتاز، اخترت تداول {asset}.\nحدد فريم العمل الحين ليقوم البوت بسحب الشارت:", 
+                              text=f"🎯 ممتاز، اخترت تداول {asset}.\nحدد فريم العمل الحين ليقوم البوت بسحب الشارت المباشر:", 
                               reply_markup=markup)
 
     elif call.data and str(call.data).startswith("frame_"):
@@ -133,18 +127,17 @@ def callback_inline(call):
             is_scalping = "true" if selected_frame in ["5 دقائق", "15 دقيقة"] else "false"
             mode_label = "⚡ سـكـالـبـيـنج سـريـع" if is_scalping == "true" else "🏢 ســويــنــج مـمـتـد"
             
-            waiting_msg = bot.send_message(chat_id, f"📡 جاري جلب بيانات شارت {asset} الحية وتحليل الموجة الحركية... 🔄")
+            waiting_msg = bot.send_message(chat_id, f"📡 جاري كسر حماية مزود البيانات وسحب شارت {asset}... 🔄")
             
             market_data = fetch_live_market_data(asset, selected_frame)
             
             if not market_data:
                 bot.edit_message_text(chat_id=chat_id, message_id=waiting_msg.message_id, 
-                                      text="❌ واجه السيرفر حظراً مؤقتاً في جلب البيانات. انتظر دقيقة ثم جرب مرة أخرى.")
+                                      text="❌ واجه السيرفر قيوداً في جلب البيانات الحية. يرجى إعادة المحاولة أو تغيير الفريم.")
                 return
             
             try:
-                # هذه هي الجملة اللي بتأكد لك أن الكود الجديد شغال!
-                bot.edit_message_text(chat_id=chat_id, message_id=waiting_msg.message_id, text=f"📊 تم جلب الشارت بنجاح! جاري استخراج الصفقة بنظام Pipe الآمن... ⏳")
+                bot.edit_message_text(chat_id=chat_id, message_id=waiting_msg.message_id, text=f"📊 تم جلب الشارت بنجاح! جاري استخراج الصفقة... ⏳")
                 
                 prompt = (
                     f"أنت تستخدم استراتيجية Kassem 6.\n"
@@ -201,14 +194,14 @@ def callback_inline(call):
                 result_message = (
                     f"⚙️ **استراتيجية:** `Kassem 6 Connection` 📡\n"
                     f"📈 **الفئة:** `{mode_label}`\n\n"
-                    f"{icon} **الأمر المعتمد:** `{order_name}`\n"
+                    f"{icon} **نوع الأمر المعتمد:** `{order_name}`\n"
                     f"🔺 قمة الشارت: `{high:.2f}`\n"
                     f"🔻 قاع الشارت: `{low:.2f}`\n"
                     f"🎯 **نقطة الدخول:** `{entry:.2f}`\n"
                     f"❌ **وقف الخسارة:** `{sl:.2f}`\n"
                     f"🎯 **الهدف الأول:** `{tp1:.2f}`\n"
                     f"🎯 **الهدف الثاني:** `{tp2:.2f}`\n\n"
-                    f"⚖️ نسبة العائد: `1:3`"
+                    f"⚖️ نسبة العائد المحددة: `1:3`"
                 )
                 
                 bot.delete_message(chat_id, waiting_msg.message_id)
@@ -217,7 +210,7 @@ def callback_inline(call):
                 bot.send_message(chat_id, result_message, reply_markup=markup, parse_mode="Markdown")
                 
             except Exception as e:
-                bot.send_message(chat_id, f"❌ خطأ طارئ:\n`{str(e)}`")
+                bot.send_message(chat_id, f"❌ حدث خطأ أثناء استخراج البيانات:\n`{str(e)}`")
         else:
             bot.send_message(chat_id=chat_id, text="⚠️ يرجى إعادة بدء البوت عبر إرسال /start")
 
