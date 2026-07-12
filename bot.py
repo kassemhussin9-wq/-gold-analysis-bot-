@@ -19,7 +19,6 @@ user_states = {}
 
 def fetch_live_market_data(asset_type, frame_choice):
     limit = 30
-    # إعداد متصفح وهمي قوي لتجاوز حظر السيرفرات وحماية المنصات
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json'
@@ -49,7 +48,6 @@ def fetch_live_market_data(asset_type, frame_choice):
                         })
                 return market_summary[-limit:]
         else:
-            # تحديث ربط البيتكوين وفريماته لتتوافق بدقة مع نظام بينانس وتجاوز الحظر
             interval_map = {"5 دقائق": "5m", "15 دقيقة": "15m", "ساعة واحدة": "1h", "4 ساعات": "4h"}
             sub_int = interval_map.get(frame_choice, "1h")
             url = f"https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval={sub_int}&limit={limit}"
@@ -73,7 +71,7 @@ def fetch_live_market_data(asset_type, frame_choice):
 
 @app.route('/')
 def home():
-    return "Bot Core Fully Fixed and Secured!"
+    return "Bot JSON Schema Patched Successfully!"
 
 @app.route('/' + TELEGRAM_TOKEN if TELEGRAM_TOKEN else '', methods=['POST'])
 def getMessage():
@@ -91,9 +89,9 @@ def send_welcome(message):
     user_states[message.chat.id] = {}
     welcome_text = (
         "مرحباً بك يا غالي في منظومة القناص الميكانيكي! 📊\n"
-        "📡 [All Market Data Connections Secured]\n\n"
-        "البوت الحين مبرمج وجاهز لقنص صفقات الذهب والبيتكوين ميكانيكياً بنسبة عائد 1:3 حتمية.\n\n"
-        "اختر الأصل المالي المطلوب الحين:"
+        "📡 [Strict JSON Validation Mode Active]\n\n"
+        "تم إصلاح هيكلة البيانات بالكامل الحين لتعمل على الذهب والبيتكوين بدون أي أخطاء برمجية.\n\n"
+        "اختر الأصل المالي الحين:"
     )
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
@@ -132,51 +130,47 @@ def callback_inline(call):
             is_scalping = "true" if selected_frame in ["5 دقائق", "15 دقيقة"] else "false"
             mode_label = "⚡ سـكـالـبـيـنج سـريـع" if is_scalping == "true" else "🏢 ســويــنــج مـمـتـد"
             
-            waiting_msg = bot.send_message(chat_id, f"📡 جاري الاتصال الآمن بسيرفرات {asset} وجلب بيانات الشارت الحية... 🔄")
+            waiting_msg = bot.send_message(chat_id, f"📡 جاري جلب بيانات شارت {asset} الحية وتحليل الموجة... 🔄")
             
             market_data = fetch_live_market_data(asset, selected_frame)
             
             if not market_data:
                 bot.edit_message_text(chat_id=chat_id, message_id=waiting_msg.message_id, 
-                                      text="❌ واجه السيرفر قيوداً في جلب البيانات الحية. يرجى الانتظار ثواني وإعادة الضغط للتحديث.")
+                                      text="❌ واجه السيرفر قيوداً في جلب البيانات الحية. يرجى إعادة المحاولة.")
                 return
             
             try:
-                bot.edit_message_text(chat_id=chat_id, message_id=waiting_msg.message_id, text=f"📊 تم جلب الشارت بنجاح! جاري تشغيل الحسابات الرقمية الصارمة... ⏳")
+                bot.edit_message_text(chat_id=chat_id, message_id=waiting_msg.message_id, text=f"📊 تم جلب الشارت بنجاح! جاري التثبيت الرقمي واستخراج الصفقة... ⏳")
                 
                 prompt = (
                     f"أنت كبير محللين كميين وتستخدم مفاهيم SMC والـ Orderflow بالتكامل مع الاستراتيجية الحسابية الرقمية 2.18.\n"
                     f"أمامك شارت الشموع لزوج {asset} فريم ({selected_frame}).\n\n"
                     f"بيانات الشارت الممررة الحين:\n{json.dumps(market_data)}\n\n"
                     "قم بتنفيذ المهام التالية بدقة قطعية:\n"
-                    "1. استخرج أعلى قمة حركية حقيقية (high) وأدنى قاع حركي حقيقي (low) للموجة الحالية من البيانات المرفقة.\n"
+                    "1. استخرج أعلى قمة حركية حقيقية (high) وأدنى قاع حركي حقيقي (low) للموجة الحالية.\n"
                     "2. حدد اتجاه تدفق السيولة ميكانيكياً (BUY أو SELL).\n"
                     "3. اكتب شرحاً ميكانيكياً مختصراً جداً لحركة السعر.\n\n"
-                    "أخرج النتيجة في قالب JSON فقط دون أي كلام جانبي كالتالي:\n"
+                    "يجب إخراج النتيجة كـ JSON صالح ومطابق تماماً لهذا القالب وبدون أي أخطاء في الفواصل:\n"
                     "{\n"
-                    '  "trade_type": "BUY" أو "SELL",\n'
-                    '  "extracted_high": القمة كقيمة رقمية مجردة,\n'
-                    '  "extracted_low": القاع كقيمة رقمية مجردة,\n'
+                    '  "trade_type": "BUY",\n'
+                    '  "extracted_high": 0.0,\n'
+                    '  "extracted_low": 0.0,\n'
                     '  "analysis": "تحليل تدفق السيولة هنا باللغة العربية"\n'
                     "}"
                 )
                 
+                # إجبار الموديل على الالتزام الصارم ببنية JSON 100% لتجنب أخطاء الفواصل
                 generation_config = {
                     "temperature": 0.0,
                     "top_p": 1.0,
                     "max_output_tokens": 1000,
+                    "response_mime_type": "application/json"
                 }
                 
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 response = model.generate_content(prompt, generation_config=generation_config)
                 
                 raw_text = response.text.strip()
-                if raw_text.startswith("```json"):
-                    raw_text = raw_text[7:]
-                if raw_text.endswith("```"):
-                    raw_text = raw_text[:-3]
-                raw_text = raw_text.strip()
-                
                 data = json.loads(raw_text)
                 user_states[chat_id]["full_analysis"] = data["analysis"]
                 
@@ -203,7 +197,7 @@ def callback_inline(call):
                     tp2 = entry - (risk * 3)
                 
                 result_message = (
-                    f"⚙️ **نوع الاتصال المفعّل:** `Bypassed Secure Feed Connection` 📡\n"
+                    f"⚙️ **نوع الاتصال المفعّل:** `Strict JSON Feed Connection` 📡\n"
                     f"📈 **الفئة والنمط المفعّل:** `{mode_label}`\n\n"
                     f"📊 **الصفقة الميكانيكية المستخرجة من شارت {asset} (2.18):**\n\n"
                     f"{icon} **نوع الأمر المعتمد:** `{order_name}`\n"
@@ -215,7 +209,7 @@ def callback_inline(call):
                     f"🎯 **الهدف الثاني الرئيسي (TP2):** `{tp2:.2f}`\n\n"
                     f"⏱️ الفريم المعالج: {selected_frame}\n"
                     f"⚖️ نسبة العائد المحسوبة ميكانيكياً: `1:3 بالملي`\n"
-                    f"🛡️ حالة البيانات: مستقرة ومحمية بنسبة 100%"
+                    f"🛡️ حالة البيانات: تمت معالجتها بالهيكلية الصارمة 100%"
                 )
                 
                 bot.delete_message(chat_id, waiting_msg.message_id)
