@@ -29,7 +29,7 @@ def fetch_live_market_data(asset_type, frame_choice):
             interval_map = {"5 دقائق": "5m", "15 دقيقة": "15m", "ساعة واحدة": "1h", "4 ساعات": "1h"}
             sub_int = interval_map.get(frame_choice, "1h")
             
-            url = f"https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range={period}&interval={sub_int}"
+            url = f"[https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range=](https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range=){period}&interval={sub_int}"
             req = urllib.request.Request(url, headers=headers)
             
             with urllib.request.urlopen(req, timeout=10) as response:
@@ -50,7 +50,7 @@ def fetch_live_market_data(asset_type, frame_choice):
         else:
             interval_map = {"5 دقائق": "5m", "15 دقيقة": "15m", "ساعة واحدة": "1h", "4 ساعات": "4h"}
             sub_int = interval_map.get(frame_choice, "1h")
-            url = f"https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval={sub_int}&limit={limit}"
+            url = f"[https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=](https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=){sub_int}&limit={limit}"
             
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=10) as response:
@@ -71,7 +71,7 @@ def fetch_live_market_data(asset_type, frame_choice):
 
 @app.route('/')
 def home():
-    return "Bot Engine Fully Protected with Native Schema!"
+    return "Bot Engine Fully Protected with Bulletproof Pipe Extraction!"
 
 @app.route('/' + TELEGRAM_TOKEN if TELEGRAM_TOKEN else '', methods=['POST'])
 def getMessage():
@@ -89,7 +89,7 @@ def send_welcome(message):
     user_states[message.chat.id] = {}
     welcome_text = (
         "مرحباً بك يا غالي في منظومة القناص الميكانيكي! 📊\n"
-        "📡 [Global Price Feed Connection Active]\n\n"
+        "📡 [Text-Pipe Extraction Mode Active]\n\n"
         "تم تفعيل الاتصال الحتمي والمباشر الحين لتحليل الذهب والبيتكوين.\n\n"
         "اختر الأصل المالي المطلق:"
     )
@@ -140,57 +140,59 @@ def callback_inline(call):
                 return
             
             try:
-                bot.edit_message_text(chat_id=chat_id, message_id=waiting_msg.message_id, text=f"📊 تم جلب الشارت بنجاح! جاري التثبيت الرقمي واستخراج الصفقة الحتمية... ⏳")
+                bot.edit_message_text(chat_id=chat_id, message_id=waiting_msg.message_id, text=f"📊 تم جلب الشارت بنجاح! جاري استخراج الصفقة باستراتيجية Kassem 6 الحتمية... ⏳")
                 
                 prompt = (
-                    f"أنت كبير محللين كميين وتستخدم مفاهيم SMC والـ Orderflow بالتكامل مع الاستراتيجية الحسابية الرقمية 2.18.\n"
-                    f"أمامك شارت الشموع لزوج {asset} فريم ({selected_frame}).\n\n"
-                    f"بيانات الشارت الممررة الحين:\n{json.dumps(market_data)}\n\n"
-                    "قم بتنفيذ المهام التالية بدقة قطعية وضمن قالب JSON المعتمد تماماً بدون أي علامات اقتباس داخلية خارج القالب:\n"
-                    "1. استخرج أعلى قمة حركية حقيقية (high) وأدنى قاع حركي حقيقي (low) للموجة الحالية من البيانات الممررة.\n"
-                    "2. حدد اتجاه تدفق السيولة ميكانيكياً (BUY أو SELL).\n"
-                    "3. اكتب شرحاً ميكانيكياً باللغة العربية لحركة السعر وسحب السيولة الحالية بدون استخدام أي فواصل غريبة أو علامات تنصيص داخل النص."
+                    f"أنت كبير محللين كميين وتستخدم استراتيجية Kassem 6 (التي تدمج SMC والـ Orderflow مع المعالجة الرقمية 2.18).\n"
+                    f"أمامك بيانات شارت الشموع لزوج {asset} فريم ({selected_frame}):\n"
+                    f"{json.dumps(market_data)}\n\n"
+                    "يجب عليك إرجاع النتيجة في سطر نصي واحد فقط، مفصول بعلامة |، بالترتيب التالي:\n"
+                    "نوع_الصفقة|أعلى_سعر|أدنى_سعر|التحليل_بالعربية\n"
+                    "مثال للرد الصحيح والوحيد المقبول:\n"
+                    "BUY|2345.5|2330.0|السعر كسر الهيكل وتدفق السيولة يدعم الصعود لاختراق الفجوات السعرية.\n\n"
+                    "تحذير صارم: لا تكتب أي كود JSON نهائياً، ولا تضف أي مسافات زائدة أو علامات ماركداون. أرسل السطر المطلوب فقط."
                 )
-                
-                # استخدام علامات الاقتباس المزدوجة الصارمة المتوافقة مع معايير الـ JSON لتجنب الخطأ نهائياً
-                analysis_schema = {
-                    "type": "object",
-                    "properties": {
-                        "trade_type": {"type": "string", "description": "Must be BUY or SELL"},
-                        "extracted_high": {"type": "number", "description": "The highest price extracted from data"},
-                        "extracted_low": {"type": "number", "description": "The lowest price extracted from data"},
-                        "analysis": {"type": "string", "description": "Arabic market narrative description"}
-                    },
-                    "required": ["trade_type", "extracted_high", "extracted_low", "analysis"]
-                }
                 
                 generation_config = {
                     "temperature": 0.0,
-                    "top_p": 1.0,
-                    "max_output_tokens": 1000,
-                    "response_mime_type": "application/json",
-                    "response_schema": analysis_schema
+                    "max_output_tokens": 1000
                 }
                 
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 response = model.generate_content(prompt, generation_config=generation_config)
                 
-                data = json.loads(response.text.strip())
-                user_states[chat_id]["full_analysis"] = data["analysis"]
+                # استخراج البيانات بقوة غاشمة تتخطى أي خطأ من الذكاء الاصطناعي
+                raw_output = response.text.strip().replace("```text", "").replace("```", "").strip()
                 
-                high = float(data["extracted_high"])
-                low = float(data["extracted_low"])
+                valid_line = ""
+                for line in raw_output.split('\n'):
+                    if "|" in line:
+                        valid_line = line
+                        break
+                        
+                if not valid_line:
+                    raise ValueError(f"لم يرجع النموذج الرد بالصيغة المطلوبة. الرد كان: {raw_output}")
+                    
+                parts = valid_line.split('|')
+                if len(parts) < 4:
+                    raise ValueError(f"هيكلية الرد غير مكتملة: {valid_line}")
+                
+                trade_type = parts[0].strip().upper()
+                high = float(parts[1].strip())
+                low = float(parts[2].strip())
+                user_states[chat_id]["full_analysis"] = parts[3].strip()
+                
                 diff = high - low
                 correction_value = diff / 2.18
                 
-                if data["trade_type"] == "BUY":
+                if trade_type == "BUY":
                     order_name = "شراء معلّق (Buy Limit)"
                     icon = "📉"
                     entry = high - correction_value
                     sl = low
                     risk = entry - sl
                     tp1 = entry + risk
-                    tp2 = entry + (risk * 3) # الحفاظ على الريشيو الحتمي 1:3 الخاص بك
+                    tp2 = entry + (risk * 3)
                 else:
                     order_name = "بيع معلّق (Sell Limit)"
                     icon = "📈"
@@ -198,10 +200,10 @@ def callback_inline(call):
                     sl = high
                     risk = sl - entry
                     tp1 = entry - risk
-                    tp2 = entry - (risk * 3) # الحفاظ على الريشيو الحتمي 1:3 الخاص بك
+                    tp2 = entry - (risk * 3)
                 
                 result_message = (
-                    f"⚙️ **نوع الاتصال المفعّل:** `Global Price Feed Connection` 📡\n"
+                    f"⚙️ **استراتيجية:** `Kassem 6 Connection` 📡\n"
                     f"📈 **الفئة والنمط المفعّل:** `{mode_label}`\n\n"
                     f"📊 **الصفقة الميكانيكية المستخرجة من شارت {asset} المباشر (2.18):**\n\n"
                     f"{icon} **نوع الأمر المعتمد:** `{order_name}`\n"
@@ -231,7 +233,7 @@ def callback_inline(call):
     elif call.data == "request_analysis":
         if chat_id in user_states and "full_analysis" in user_states[chat_id]:
             analysis_text = user_states[chat_id]["full_analysis"]
-            bot.send_message(chat_id, f"📊 **التفسير الميكانيكي للشارت المباشر المستقر:**\n\n{analysis_text}", parse_mode="Markdown")
+            bot.send_message(chat_id, f"📊 **التفسير الميكانيكي لاستراتيجية Kassem 6:**\n\n{analysis_text}", parse_mode="Markdown")
             user_states[chat_id] = {}
         else:
             bot.send_message(chat_id, "⚠️ انتهت صلاحية الجلسة.")
