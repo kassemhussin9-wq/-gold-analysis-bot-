@@ -3,6 +3,7 @@ import telebot
 import google.generativeai as genai
 import json
 import urllib.request
+import time
 from flask import Flask, request
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -19,9 +20,11 @@ user_states = {}
 
 def fetch_live_market_data(asset_type, frame_choice):
     limit = 30
+    # تحديث الهيدر عشان نتخطى حظر ياهو فاينانس
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
     }
     try:
         if asset_type == "الذهب":
@@ -29,10 +32,11 @@ def fetch_live_market_data(asset_type, frame_choice):
             interval_map = {"5 دقائق": "5m", "15 دقيقة": "15m", "ساعة واحدة": "1h", "4 ساعات": "1h"}
             sub_int = interval_map.get(frame_choice, "1h")
             
-            url = f"[https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range=](https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range=){period}&interval={sub_int}"
+            # إضافة رقم عشوائي كـ Timestamp لمنع الكاش
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range={period}&interval={sub_int}&t={int(time.time())}"
             req = urllib.request.Request(url, headers=headers)
             
-            with urllib.request.urlopen(req, timeout=10) as response:
+            with urllib.request.urlopen(req, timeout=15) as response:
                 json_data = json.loads(response.read().decode())
                 result = json_data["chart"]["result"][0]
                 indicators = result["indicators"]["quote"][0]
@@ -50,7 +54,7 @@ def fetch_live_market_data(asset_type, frame_choice):
         else:
             interval_map = {"5 دقائق": "5m", "15 دقيقة": "15m", "ساعة واحدة": "1h", "4 ساعات": "4h"}
             sub_int = interval_map.get(frame_choice, "1h")
-            url = f"[https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=](https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=){sub_int}&limit={limit}"
+            url = f"https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval={sub_int}&limit={limit}"
             
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=10) as response:
@@ -81,7 +85,6 @@ def getMessage():
         bot.process_new_updates([update])
         return "!", 200
     except Exception as e:
-        print(f"Error processing update: {e}")
         return "Error", 500
 
 @bot.message_handler(commands=['start'])
@@ -90,13 +93,13 @@ def send_welcome(message):
     welcome_text = (
         "مرحباً بك يا غالي في منظومة القناص الميكانيكي! 📊\n"
         "📡 [Text-Pipe Extraction Mode Active]\n\n"
-        "تم تفعيل الاتصال الحتمي والمباشر الحين لتحليل الذهب والبيتكوين.\n\n"
+        "تم تفعيل الاتصال الحتمي والمباشر الحين.\n\n"
         "اختر الأصل المالي المطلق:"
     )
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
-        InlineKeyboardButton("🪙 قنص شارت الذهب المباشر (XAU/USD)", callback_data="trade_gold"),
-        InlineKeyboardButton("⚡ قنص شارت البيتكوين المباشر (BTC/USDT)", callback_data="trade_btc")
+        InlineKeyboardButton("🪙 قنص شارت الذهب (XAU/USD)", callback_data="trade_gold"),
+        InlineKeyboardButton("⚡ قنص شارت البيتكوين (BTC/USDT)", callback_data="trade_btc")
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=markup)
 
@@ -116,7 +119,7 @@ def callback_inline(call):
             InlineKeyboardButton("⏱️ 4 ساعات (4H)", callback_data="frame_4h")
         )
         bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, 
-                              text=f"🎯 ممتاز، اخترت تداول {asset}.\nحدد فريم العمل الحين ليقوم البوت بسحب الشارت المباشر:", 
+                              text=f"🎯 ممتاز، اخترت تداول {asset}.\nحدد فريم العمل الحين ليقوم البوت بسحب الشارت:", 
                               reply_markup=markup)
 
     elif call.data and str(call.data).startswith("frame_"):
@@ -136,33 +139,29 @@ def callback_inline(call):
             
             if not market_data:
                 bot.edit_message_text(chat_id=chat_id, message_id=waiting_msg.message_id, 
-                                      text="❌ واجه السيرفر قيوداً في جلب البيانات الحية. يرجى إعادة التحديث.")
+                                      text="❌ واجه السيرفر حظراً مؤقتاً في جلب البيانات. انتظر دقيقة ثم جرب مرة أخرى.")
                 return
             
             try:
-                bot.edit_message_text(chat_id=chat_id, message_id=waiting_msg.message_id, text=f"📊 تم جلب الشارت بنجاح! جاري استخراج الصفقة باستراتيجية Kassem 6 الحتمية... ⏳")
+                # هذه هي الجملة اللي بتأكد لك أن الكود الجديد شغال!
+                bot.edit_message_text(chat_id=chat_id, message_id=waiting_msg.message_id, text=f"📊 تم جلب الشارت بنجاح! جاري استخراج الصفقة بنظام Pipe الآمن... ⏳")
                 
                 prompt = (
-                    f"أنت كبير محللين كميين وتستخدم استراتيجية Kassem 6 (التي تدمج SMC والـ Orderflow مع المعالجة الرقمية 2.18).\n"
-                    f"أمامك بيانات شارت الشموع لزوج {asset} فريم ({selected_frame}):\n"
+                    f"أنت تستخدم استراتيجية Kassem 6.\n"
+                    f"بيانات شارت {asset} فريم ({selected_frame}):\n"
                     f"{json.dumps(market_data)}\n\n"
-                    "يجب عليك إرجاع النتيجة في سطر نصي واحد فقط، مفصول بعلامة |، بالترتيب التالي:\n"
-                    "نوع_الصفقة|أعلى_سعر|أدنى_سعر|التحليل_بالعربية\n"
-                    "مثال للرد الصحيح والوحيد المقبول:\n"
-                    "BUY|2345.5|2330.0|السعر كسر الهيكل وتدفق السيولة يدعم الصعود لاختراق الفجوات السعرية.\n\n"
-                    "تحذير صارم: لا تكتب أي كود JSON نهائياً، ولا تضف أي مسافات زائدة أو علامات ماركداون. أرسل السطر المطلوب فقط."
+                    "أرجع النتيجة في سطر نصي واحد فقط مفصول بعلامة | بهذا الترتيب:\n"
+                    "نوع_الصفقة|أعلى_سعر|أدنى_سعر|التحليل\n"
+                    "مثال:\n"
+                    "BUY|2345.5|2330.0|السعر كسر الهيكل وتدفق السيولة يدعم الصعود.\n"
+                    "تحذير: لا تكتب أي كود JSON، أرسل السطر المطلوب فقط."
                 )
                 
-                generation_config = {
-                    "temperature": 0.0,
-                    "max_output_tokens": 1000
-                }
-                
+                generation_config = {"temperature": 0.0, "max_output_tokens": 1000}
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 response = model.generate_content(prompt, generation_config=generation_config)
                 
-                # استخراج البيانات بقوة غاشمة تتخطى أي خطأ من الذكاء الاصطناعي
-                raw_output = response.text.strip().replace("```text", "").replace("```", "").strip()
+                raw_output = response.text.strip().replace("```text", "").replace("```json", "").replace("```", "").strip()
                 
                 valid_line = ""
                 for line in raw_output.split('\n'):
@@ -171,12 +170,9 @@ def callback_inline(call):
                         break
                         
                 if not valid_line:
-                    raise ValueError(f"لم يرجع النموذج الرد بالصيغة المطلوبة. الرد كان: {raw_output}")
+                    raise ValueError(f"صيغة غير مدعومة من الذكاء الاصطناعي: {raw_output}")
                     
                 parts = valid_line.split('|')
-                if len(parts) < 4:
-                    raise ValueError(f"هيكلية الرد غير مكتملة: {valid_line}")
-                
                 trade_type = parts[0].strip().upper()
                 high = float(parts[1].strip())
                 low = float(parts[2].strip())
@@ -204,39 +200,32 @@ def callback_inline(call):
                 
                 result_message = (
                     f"⚙️ **استراتيجية:** `Kassem 6 Connection` 📡\n"
-                    f"📈 **الفئة والنمط المفعّل:** `{mode_label}`\n\n"
-                    f"📊 **الصفقة الميكانيكية المستخرجة من شارت {asset} المباشر (2.18):**\n\n"
-                    f"{icon} **نوع الأمر المعتمد:** `{order_name}`\n"
-                    f"🔺 قمة الشارت الحقيقية الحين: `{high:.2f}`\n"
-                    f"🔻 قاع الشارت الحقيقي الحين: `{low:.2f}`\n"
-                    f"🎯 **نقطة الدخول القناصة:** `{entry:.2f}`\n"
-                    f"❌ **وقف الخسارة (SL):** `{sl:.2f}`\n"
-                    f"🎯 **الهدف الأول (TP1):** `{tp1:.2f}`\n"
-                    f"🎯 **الهدف الثاني الرئيسي (TP2):** `{tp2:.2f}`\n\n"
-                    f"⏱️ الفريم المعالج: {selected_frame}\n"
-                    f"⚖️ نسبة العائد المحسوبة ميكانيكياً: `1:3 بالملي`\n"
-                    f"🛡️ حالة البيانات: حية ومطابقة لشاشات التداول تماماً"
+                    f"📈 **الفئة:** `{mode_label}`\n\n"
+                    f"{icon} **الأمر المعتمد:** `{order_name}`\n"
+                    f"🔺 قمة الشارت: `{high:.2f}`\n"
+                    f"🔻 قاع الشارت: `{low:.2f}`\n"
+                    f"🎯 **نقطة الدخول:** `{entry:.2f}`\n"
+                    f"❌ **وقف الخسارة:** `{sl:.2f}`\n"
+                    f"🎯 **الهدف الأول:** `{tp1:.2f}`\n"
+                    f"🎯 **الهدف الثاني:** `{tp2:.2f}`\n\n"
+                    f"⚖️ نسبة العائد: `1:3`"
                 )
                 
                 bot.delete_message(chat_id, waiting_msg.message_id)
-                
                 markup = InlineKeyboardMarkup()
-                markup.add(InlineKeyboardButton("❓ تفاصيل تدفق السيولة؟", callback_data="request_analysis"))
-                
+                markup.add(InlineKeyboardButton("❓ تفاصيل التحليل؟", callback_data="request_analysis"))
                 bot.send_message(chat_id, result_message, reply_markup=markup, parse_mode="Markdown")
                 
             except Exception as e:
-                bot.send_message(chat_id, f"❌ حدث خطأ أثناء معالجة البيانات الحركية:\n`{str(e)}`")
+                bot.send_message(chat_id, f"❌ خطأ طارئ:\n`{str(e)}`")
         else:
-            bot.send_message(chat_id=chat_id, text="⚠️ عذراً، يرجى إعادة بدء البوت عبر إرسال /start")
+            bot.send_message(chat_id=chat_id, text="⚠️ يرجى إعادة بدء البوت عبر إرسال /start")
 
     elif call.data == "request_analysis":
         if chat_id in user_states and "full_analysis" in user_states[chat_id]:
             analysis_text = user_states[chat_id]["full_analysis"]
-            bot.send_message(chat_id, f"📊 **التفسير الميكانيكي لاستراتيجية Kassem 6:**\n\n{analysis_text}", parse_mode="Markdown")
+            bot.send_message(chat_id, f"📊 **التفسير الميكانيكي:**\n\n{analysis_text}", parse_mode="Markdown")
             user_states[chat_id] = {}
-        else:
-            bot.send_message(chat_id, "⚠️ انتهت صلاحية الجلسة.")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
