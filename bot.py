@@ -1,9 +1,9 @@
 import os
 import telebot
 import google.generativeai as genai
+from google.generativeai import types
 import json
 import urllib.request
-import re
 from flask import Flask, request
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -72,7 +72,7 @@ def fetch_live_market_data(asset_type, frame_choice):
 
 @app.route('/')
 def home():
-    return "Bot Core JSON Anti-Break Active!"
+    return "Bot Engine Fully Protected with Structured Schema!"
 
 @app.route('/' + TELEGRAM_TOKEN if TELEGRAM_TOKEN else '', methods=['POST'])
 def getMessage():
@@ -90,9 +90,9 @@ def send_welcome(message):
     user_states[message.chat.id] = {}
     welcome_text = (
         "مرحباً بك يا غالي في منظومة القناص الميكانيكي! 📊\n"
-        "📡 [Strict Inline Text Validation Mode Active]\n\n"
-        "تمت حماية نصوص التحليل من أي كسر برمي الحين لمنع أخطاء الحزم تماماً.\n\n"
-        "اختر الأصل المالي المباشر:"
+        "📡 [Structured Schema Injection Mode Active]\n\n"
+        "تم تفعيل الاتصال الحتمي والمباشر الحين لتحليل الذهب والبيتكوين.\n\n"
+        "اختر الأصل المالي المطلق:"
     )
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
@@ -148,43 +148,35 @@ def callback_inline(call):
                     f"أمامك شارت الشموع لزوج {asset} فريم ({selected_frame}).\n\n"
                     f"بيانات الشارت الممررة الحين:\n{json.dumps(market_data)}\n\n"
                     "قم بتنفيذ المهام التالية بدقة قطعية:\n"
-                    "1. استخرج أعلى قمة حركية حقيقية (high) وأدنى قاع حركي حقيقي (low) للموجة الحالية.\n"
+                    "1. استخرج أعلى قمة حركية حقيقية (high) وأدنى قاع حركي حقيقي (low) للموجة الحالية من البيانات الممررة.\n"
                     "2. حدد اتجاه تدفق السيولة ميكانيكياً (BUY أو SELL).\n"
-                    "3. اكتب شرحاً ميكانيكياً لحركة السعر.\n\n"
-                    "شروط صارمة للإخراج:\n"
-                    "- يجب أن يكون الحقل 'analysis' عبارة عن سطر واحد مستمر بالكامل، ولا يحتوي مطلقاً على أي علامات تنصيص داخلية أو علامات اقتباس أو أسطر جديدة.\n"
-                    "تنسيق الـ JSON الإجباري:\n"
-                    "{\n"
-                    '  "trade_type": "BUY",\n'
-                    '  "extracted_high": 0.0,\n'
-                    '  "extracted_low": 0.0,\n'
-                    '  "analysis": "اكتب نص التحليل هنا باللغة العربية في سطر واحد مستمر وبدون أي اقتباسات داخله"\n'
-                    "}"
+                    "3. اكتب شرحاً ميكانيكياً باللغة العربية لحركة السعر وسحب السيولة الحالية بدون استخدام علامات اقتباس داخلية."
+                )
+                
+                # هنا قمنا ببناء الهيكل الحتمي الصارم لمنع مشاكل النصوص نهائياً
+                analysis_schema = types.Schema(
+                    type=types.Type.OBJECT,
+                    properties={
+                        "trade_type": types.Schema(type=types.Type.STRING, description="Must be BUY or SELL"),
+                        "extracted_high": types.Schema(type=types.Type.NUMBER, description="The highest price in the current structure"),
+                        "extracted_low": types.Schema(type=types.Type.NUMBER, description="The lowest price in the current structure"),
+                        "analysis": types.Schema(type=types.Type.STRING, description="Brief Arabic analysis narrative")
+                    },
+                    required=["trade_type", "extracted_high", "extracted_low", "analysis"]
                 )
                 
                 generation_config = {
                     "temperature": 0.0,
                     "top_p": 1.0,
                     "max_output_tokens": 1000,
-                    "response_mime_type": "application/json"
+                    "response_mime_type": "application/json",
+                    "response_schema": analysis_schema
                 }
                 
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 response = model.generate_content(prompt, generation_config=generation_config)
                 
-                raw_text = response.text.strip()
-                
-                # تنظيف النص برمجياً من أي نزول غير قانوني للسطر داخل النصوص لتجنب خطأ Unterminated string
-                cleaned_text = re.sub(r'\n', ' ', raw_text)
-                # إعادة إصلاح الأقواس الخارجية للـ JSON لتظل صالحة للقراءة بعد الدمج
-                if cleaned_text.startswith('{') and cleaned_text.endswith('}'):
-                    # إرجاع فواصل الحقول الأساسية لوضعها الصحيح
-                    cleaned_text = cleaned_text.replace('"trade_type"', '\n  "trade_type"')
-                    cleaned_text = cleaned_text.replace('"extracted_high"', ',\n  "extracted_high"')
-                    cleaned_text = cleaned_text.replace('"extracted_low"', ',\n  "extracted_low"')
-                    cleaned_text = cleaned_text.replace('"analysis"', ',\n  "analysis"')
-                
-                data = json.loads(cleaned_text)
+                data = json.loads(response.text.strip())
                 user_states[chat_id]["full_analysis"] = data["analysis"]
                 
                 high = float(data["extracted_high"])
@@ -210,7 +202,7 @@ def callback_inline(call):
                     tp2 = entry - (risk * 3)
                 
                 result_message = (
-                    f"⚙️ **نوع الاتصال المفعّل:** `Anti-Break JSON Stream` 📡\n"
+                    f"⚙️ **نوع الاتصال المفعّل:** `Structured Native Schema Connection` 📡\n"
                     f"📈 **الفئة والنمط المفعّل:** `{mode_label}`\n\n"
                     f"📊 **الصفقة الميكانيكية المستخرجة من شارت {asset} (2.18):**\n\n"
                     f"{icon} **نوع الأمر المعتمد:** `{order_name}`\n"
@@ -222,7 +214,7 @@ def callback_inline(call):
                     f"🎯 **الهدف الثاني الرئيسي (TP2):** `{tp2:.2f}`\n\n"
                     f"⏱️ الفريم المعالج: {selected_frame}\n"
                     f"⚖️ نسبة العائد المحسوبة ميكانيكياً: `1:3 بالملي`\n"
-                    f"🛡️ حالة البيانات: محمية ومستقرة تماماً ومحصنة"
+                    f"🛡️ حالة البيانات: مستقرة ومؤمنة بالنظام الهيكلي للذكاء الاصطناعي"
                 )
                 
                 bot.delete_message(chat_id, waiting_msg.message_id)
@@ -235,7 +227,7 @@ def callback_inline(call):
             except Exception as e:
                 bot.send_message(chat_id, f"❌ حدث خطأ أثناء معالجة البيانات الحركية:\n`{str(e)}`")
         else:
-            bot.send_message(chat_id="⚠️ عذراً، يرجى إعادة بدء البوت عبر إرسال /start")
+            bot.send_message(chat_id=chat_id, text="⚠️ عذراً، يرجى إعادة بدء البوت عبر إرسال /start")
 
     elif call.data == "request_analysis":
         if chat_id in user_states and "full_analysis" in user_states[chat_id]:
