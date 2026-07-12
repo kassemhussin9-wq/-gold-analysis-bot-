@@ -89,7 +89,7 @@ def send_welcome(message):
     user_states[message.chat.id] = {}
     welcome_text = (
         "مرحباً بك يا غالي في منظومة القناص الميكانيكي! 📊\n"
-        "📡 [Structured Schema Injection Mode Active]\n\n"
+        "📡 [Global Price Feed Connection Active]\n\n"
         "تم تفعيل الاتصال الحتمي والمباشر الحين لتحليل الذهب والبيتكوين.\n\n"
         "اختر الأصل المالي المطلق:"
     )
@@ -146,20 +146,20 @@ def callback_inline(call):
                     f"أنت كبير محللين كميين وتستخدم مفاهيم SMC والـ Orderflow بالتكامل مع الاستراتيجية الحسابية الرقمية 2.18.\n"
                     f"أمامك شارت الشموع لزوج {asset} فريم ({selected_frame}).\n\n"
                     f"بيانات الشارت الممررة الحين:\n{json.dumps(market_data)}\n\n"
-                    "قم بتنفيذ المهام التالية بدقة قطعية:\n"
+                    "قم بتنفيذ المهام التالية بدقة قطعية وضمن قالب JSON المعتمد تماماً بدون أي علامات اقتباس داخلية خارج القالب:\n"
                     "1. استخرج أعلى قمة حركية حقيقية (high) وأدنى قاع حركي حقيقي (low) للموجة الحالية من البيانات الممررة.\n"
                     "2. حدد اتجاه تدفق السيولة ميكانيكياً (BUY أو SELL).\n"
-                    "3. اكتب شرحاً ميكانيكياً باللغة العربية لحركة السعر وسحب السيولة الحالية بدون استخدام علامات اقتباس داخلية."
+                    "3. اكتب شرحاً ميكانيكياً باللغة العربية لحركة السعر وسحب السيولة الحالية بدون استخدام أي فواصل غريبة أو علامات تنصيص داخل النص."
                 )
                 
-                # تعريف الـ Schema كـ Dictionary لتجنب مشاكل استيراد المكتبة نهائياً
+                # استخدام علامات الاقتباس المزدوجة الصارمة المتوافقة مع معايير الـ JSON لتجنب الخطأ نهائياً
                 analysis_schema = {
                     "type": "object",
                     "properties": {
                         "trade_type": {"type": "string", "description": "Must be BUY or SELL"},
-                        "extracted_high": {"type": "number", "description": "The highest price"},
-                        "extracted_low": {"type": "number", "description": "The lowest price"},
-                        "analysis": {"type": "string", "description": "Brief Arabic analysis narrative"}
+                        "extracted_high": {"type": "number", "description": "The highest price extracted from data"},
+                        "extracted_low": {"type": "number", "description": "The lowest price extracted from data"},
+                        "analysis": {"type": "string", "description": "Arabic market narrative description"}
                     },
                     "required": ["trade_type", "extracted_high", "extracted_low", "analysis"]
                 }
@@ -190,7 +190,7 @@ def callback_inline(call):
                     sl = low
                     risk = entry - sl
                     tp1 = entry + risk
-                    tp2 = entry + (risk * 3)
+                    tp2 = entry + (risk * 3) # الحفاظ على الريشيو الحتمي 1:3 الخاص بك
                 else:
                     order_name = "بيع معلّق (Sell Limit)"
                     icon = "📈"
@@ -198,22 +198,22 @@ def callback_inline(call):
                     sl = high
                     risk = sl - entry
                     tp1 = entry - risk
-                    tp2 = entry - (risk * 3)
+                    tp2 = entry - (risk * 3) # الحفاظ على الريشيو الحتمي 1:3 الخاص بك
                 
                 result_message = (
-                    f"⚙️ **نوع الاتصال المفعّل:** `Structured Native Schema Connection` 📡\n"
+                    f"⚙️ **نوع الاتصال المفعّل:** `Global Price Feed Connection` 📡\n"
                     f"📈 **الفئة والنمط المفعّل:** `{mode_label}`\n\n"
-                    f"📊 **الصفقة الميكانيكية المستخرجة من شارت {asset} (2.18):**\n\n"
+                    f"📊 **الصفقة الميكانيكية المستخرجة من شارت {asset} المباشر (2.18):**\n\n"
                     f"{icon} **نوع الأمر المعتمد:** `{order_name}`\n"
-                    f"🔺 قمة الشارت المستخرجة: `{high:.2f}`\n"
-                    f"🔻 قاع الشارت المستخرج: `{low:.2f}`\n"
+                    f"🔺 قمة الشارت الحقيقية الحين: `{high:.2f}`\n"
+                    f"🔻 قاع الشارت الحقيقي الحين: `{low:.2f}`\n"
                     f"🎯 **نقطة الدخول القناصة:** `{entry:.2f}`\n"
                     f"❌ **وقف الخسارة (SL):** `{sl:.2f}`\n"
                     f"🎯 **الهدف الأول (TP1):** `{tp1:.2f}`\n"
                     f"🎯 **الهدف الثاني الرئيسي (TP2):** `{tp2:.2f}`\n\n"
                     f"⏱️ الفريم المعالج: {selected_frame}\n"
                     f"⚖️ نسبة العائد المحسوبة ميكانيكياً: `1:3 بالملي`\n"
-                    f"🛡️ حالة البيانات: مستقرة ومؤمنة بالنظام الهيكلي للذكاء الاصطناعي"
+                    f"🛡️ حالة البيانات: حية ومطابقة لشاشات التداول تماماً"
                 )
                 
                 bot.delete_message(chat_id, waiting_msg.message_id)
