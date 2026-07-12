@@ -1,7 +1,6 @@
 import os
 import telebot
 import google.generativeai as genai
-from google.generativeai import types
 import json
 import urllib.request
 from flask import Flask, request
@@ -72,7 +71,7 @@ def fetch_live_market_data(asset_type, frame_choice):
 
 @app.route('/')
 def home():
-    return "Bot Engine Fully Protected with Structured Schema!"
+    return "Bot Engine Fully Protected with Native Schema!"
 
 @app.route('/' + TELEGRAM_TOKEN if TELEGRAM_TOKEN else '', methods=['POST'])
 def getMessage():
@@ -153,17 +152,17 @@ def callback_inline(call):
                     "3. اكتب شرحاً ميكانيكياً باللغة العربية لحركة السعر وسحب السيولة الحالية بدون استخدام علامات اقتباس داخلية."
                 )
                 
-                # هنا قمنا ببناء الهيكل الحتمي الصارم لمنع مشاكل النصوص نهائياً
-                analysis_schema = types.Schema(
-                    type=types.Type.OBJECT,
-                    properties={
-                        "trade_type": types.Schema(type=types.Type.STRING, description="Must be BUY or SELL"),
-                        "extracted_high": types.Schema(type=types.Type.NUMBER, description="The highest price in the current structure"),
-                        "extracted_low": types.Schema(type=types.Type.NUMBER, description="The lowest price in the current structure"),
-                        "analysis": types.Schema(type=types.Type.STRING, description="Brief Arabic analysis narrative")
+                # تعريف الـ Schema كـ Dictionary لتجنب مشاكل استيراد المكتبة نهائياً
+                analysis_schema = {
+                    "type": "object",
+                    "properties": {
+                        "trade_type": {"type": "string", "description": "Must be BUY or SELL"},
+                        "extracted_high": {"type": "number", "description": "The highest price"},
+                        "extracted_low": {"type": "number", "description": "The lowest price"},
+                        "analysis": {"type": "string", "description": "Brief Arabic analysis narrative"}
                     },
-                    required=["trade_type", "extracted_high", "extracted_low", "analysis"]
-                )
+                    "required": ["trade_type", "extracted_high", "extracted_low", "analysis"]
+                }
                 
                 generation_config = {
                     "temperature": 0.0,
